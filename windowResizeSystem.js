@@ -47,6 +47,8 @@ function initCameraAndRendererResizeSystem(renderer)
 	{
 		function respondToResize() 
 		{
+			renderer.setPixelRatio( window.devicePixelRatio );
+			
 			//could try to turn it on its side!
 			// if( window.innerWidth < window.innerHeight )
 			// {

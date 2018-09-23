@@ -11,7 +11,7 @@ var transparentMaterial = new THREE.MeshPhongMaterial({transparent:true, opacity
 		They compete to see how many they can get in
 		Same, but with rotation and a bigger container
 		resize the container and more pop in
-		Gotta get a certain number in
+		Gotta get a certain number in. Make sure they're numbers with 3 prime factors?
 		And there's a counter saying how many
 		Multiple choice for how many and you can see them in there (have to count)
 		Multiple choice for how many and you have to multiply them/picture it (but not rotate them)
@@ -207,19 +207,29 @@ function initPacking()
 
 function initResizingRectangle(packCounter)
 {
-	var cuboidInitialDimension = 0.5
-	var cuboid = new THREE.Mesh(new THREE.CubeGeometry(cuboidInitialDimension,cuboidInitialDimension,cuboidInitialDimension), transparentMaterial)
-	cuboid.geometry.computeBoundingBox()
-	// cuboid.position.x = -0.5
+	// camera.position.applyAxisAngle(yUnit,TAU/8)
+	// camera.rotation.y += TAU / 8
+	// scene.rotation.y += TAU/8
 
-	var cuboidsInside = Array(1);
-	var placeholderGeo = new THREE.BoxBufferGeometry(1,1,1).applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0.5,0.5))
-	var placeholderMat = new THREE.MeshPhongMaterial()
-	for(var i = 0; i < cuboidsInside.length; i++)
-	{
-		cuboidsInside[i] = new THREE.Group();
-		cuboidsInside[i].add(new THREE.Mesh(placeholderGeo,placeholderMat))
-		// cuboid.add(cuboidsInside[i])
+	var dimensionsInCuboids = new THREE.Vector3(7,11,13)
+	var cuboidsInside = Array(Math.round(dimensionsInCuboids.x*dimensionsInCuboids.y*dimensionsInCuboids.z) );
+	var placeholderGeo = new THREE.BoxBufferGeometry(0.9,0.9,0.9).applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0.5,0.5))
+	placeholderGeo.computeBoundingBox()
+	for(var i = 0; i < dimensionsInCuboids.x; i++) {
+	for(var j = 0; j < dimensionsInCuboids.y; j++) {
+	for(var k = 0; k < dimensionsInCuboids.z; k++) {
+		var index = k+j*dimensionsInCuboids.z+i*dimensionsInCuboids.z*dimensionsInCuboids.y;
+		cuboidsInside[index] = new THREE.Mesh(placeholderGeo,new THREE.MeshPhongMaterial({color:new THREE.Color(Math.random(),Math.random(),Math.random())}))
+
+		cuboidsInside[index].position.set(i,j,k)
+		cuboidsInside[index].position.addScaledVector(dimensionsInCuboids,-0.5)
+
+		cuboidsInside[index].scale.setScalar(0.06)
+		cuboidsInside[index].position.multiplyScalar(0.06)
+
+		scene.add(cuboidsInside[index])
+	}
+	}
 	}
 
 	packCounter.update = function()
@@ -234,6 +244,11 @@ function initResizingRectangle(packCounter)
 		}
 		packCounter.updateText(packCounter.stringPrecedingScore + score)
 	}
+
+	var cuboidInitialDimension = 0.5
+	var cuboid = new THREE.Mesh(new THREE.CubeGeometry(cuboidInitialDimension,cuboidInitialDimension,cuboidInitialDimension), transparentMaterial)
+	cuboid.geometry.applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0,0))
+	cuboid.geometry.computeBoundingBox()
 
 	var vertexGeometry = new THREE.SphereBufferGeometry(0.03)
 	var vertexMaterial = new THREE.MeshPhongMaterial({color:0xFFD700})
@@ -294,57 +309,56 @@ function initResizingRectangle(packCounter)
 	scene.add(cuboid)
 
 	var grabbedVertex = null
-	var grabbedFace = null
+	var grabbingPlaneWorld = null
 	var mouseIntersectionWithFacePlane = null
 
 	objectsToBeUpdated.push(cuboid)
-
-	//dunno why you're doing this
-	var rayCaster = new THREE.Raycaster()
-
 	cuboid.update = function()
 	{
-		//aka onClick
+		//Can't use onclick because intersectObject doesn't always work whereas this does
 		if(mouse.clicking && !mouse.oldClicking)
 		{
-			rayCaster.ray.copy(mouse.rayCaster.ray)
-			rayCaster.ray.direction.add(rayCaster.ray.origin)
+			var localRay = mouse.rayCaster.ray.clone()
+			localRay.direction.add(localRay.origin)
 
-			cuboid.worldToLocal(rayCaster.ray.origin)
-			cuboid.worldToLocal(rayCaster.ray.direction)
+			cuboid.worldToLocal(localRay.origin)
+			cuboid.worldToLocal(localRay.direction)
 
-			rayCaster.ray.direction.sub(rayCaster.ray.origin)
-			rayCaster.ray.direction.normalize()
+			localRay.direction.sub(localRay.origin)
+			localRay.direction.normalize()
 
-			var intersections = rayCaster.intersectObject( cuboid, false )
-
-			console.log("hm")
-			if( intersections.length !== 0 )
+			var intersectionPoint = localRay.intersectBox( cuboid.geometry.boundingBox )
+			if( intersectionPoint !== null )
 			{
-				console.log("Yo")
-				var intersection = intersections[0]
-				var localIntersection = intersection.point.clone()
-				this.worldToLocal(localIntersection)
-				grabbedVertex = cuboid.geometry.vertices[ getClosestPointToPoint(localIntersection,cuboid.geometry.vertices) ]
+				grabbedVertex = cuboid.geometry.vertices[ getClosestPointToPoint(intersectionPoint,cuboid.geometry.vertices) ]
+				mouseIntersectionWithFacePlane = intersectionPoint
 
-				grabbedFace = intersection.face
-				mouseIntersectionWithFacePlane = intersection.point
+				var closestPlaneDist = Infinity
+				for(var i = 0; i < cuboid.geometry.faces.length; i++)
+				{
+					var face = cuboid.geometry.faces[i]
+					var worldGrabbedFaceVertices = [cuboid.geometry.vertices[face.getCorner(0)].clone(),cuboid.geometry.vertices[face.getCorner(1)].clone(),cuboid.geometry.vertices[face.getCorner(2)].clone()]
+					for(var j = 0; j < 3; j++)
+					{
+						cuboid.localToWorld( worldGrabbedFaceVertices[j] )
+					}
+					var facePlane = new THREE.Plane().setFromCoplanarPoints(worldGrabbedFaceVertices[0],worldGrabbedFaceVertices[1],worldGrabbedFaceVertices[2])
+					if( Math.abs( facePlane.distanceToPoint(intersectionPoint) ) < Math.abs( closestPlaneDist ) )
+					{
+						grabbingPlaneWorld = facePlane
+						closestPlaneDist = facePlane.distanceToPoint(intersectionPoint)
+					}
+				}
 			}
 		}
 
 		//the distance that the mouseray intersection with face has moved = distance our vertex
-		if(grabbedVertex)
+		if( grabbedVertex )
 		{
-			var worldGrabbedFaceVertices = [cuboid.geometry.vertices[grabbedFace.getCorner(0)].clone(),cuboid.geometry.vertices[grabbedFace.getCorner(1)].clone(),cuboid.geometry.vertices[grabbedFace.getCorner(2)].clone()]
-			for(var i = 0; i < 3; i++)
-			{
-				cuboid.localToWorld( worldGrabbedFaceVertices[i] )
-			}
-			var facePlane = new THREE.Plane().setFromCoplanarPoints(worldGrabbedFaceVertices[0],worldGrabbedFaceVertices[1],worldGrabbedFaceVertices[2])
-			var newMouseIntersectionWithFacePlane = mouse.rayCaster.ray.intersectPlane( facePlane )
+			var newMouseIntersectionWithFacePlane = mouse.rayCaster.ray.intersectPlane( grabbingPlaneWorld )
 			if( newMouseIntersectionWithFacePlane === null)
 			{
-				//hack, projective plane alert
+				//hack, projective plane alert (quite interesting)
 				return
 			}
 			var displacement = newMouseIntersectionWithFacePlane.clone().sub(mouseIntersectionWithFacePlane)
@@ -363,15 +377,19 @@ function initResizingRectangle(packCounter)
 			}
 
 			cuboid.geometry.verticesNeedUpdate = true
+			cuboid.geometry.computeBoundingBox()
 			mouseIntersectionWithFacePlane.copy(newMouseIntersectionWithFacePlane)
+
+			for(var i = 0; i < cuboidsInside.length; i++)
+			{
+				cuboidsInside[i].visible = checkBoxMeshContainment(cuboid,cuboidsInside[i])
+			}
 
 			if(!mouse.clicking)
 			{
 				grabbedVertex = null
-				grabbedFace = null
+				grabbingPlaneWorld = null
 				mouseIntersectionWithFacePlane = null
-
-				cuboid.geometry.computeBoundingBox()
 			}
 		}
 		cuboid.updateVerticesAndEdges()
@@ -504,7 +522,7 @@ function initCuboidPacking(packCounter)
 		var thereIsALooseOne = false
 		for(var i = 0; i < cuboids.length; i++)
 		{
-			if( checkIntersectionOfBoxMeshes(bin,cuboids[i]) )
+			if( checkBoxMeshContainment(cuboids[i],bin) )
 			{
 				score++;
 			}
@@ -532,21 +550,6 @@ function initCuboidPacking(packCounter)
 		backgroundCuboid.position.setComponent(i,-dimension/2)
 		collideableCuboids.push(backgroundCuboid)
 		_scene.add(backgroundCuboid)
-	}
-
-	function checkIntersectionOfBoxMeshes(a,b)
-	{
-		console.assert(a.parent === b.parent)
-
-		var convertedBoxAMin = a.geometry.boundingBox.min.clone().multiply(a.scale).add(a.position)
-		var convertedBoxAMax = a.geometry.boundingBox.max.clone().multiply(a.scale).add(a.position)
-		var convertedBoxA = new THREE.Box3(convertedBoxAMin,convertedBoxAMax)
-
-		var convertedBoxBMin = b.geometry.boundingBox.min.clone().multiply(b.scale).add(b.position)
-		var convertedBoxBMax = b.geometry.boundingBox.max.clone().multiply(b.scale).add(b.position)
-		var convertedBoxB = new THREE.Box3(convertedBoxBMin,convertedBoxBMax)
-
-		return convertedBoxA.intersectsBox(convertedBoxB)
 	}
 	
 	function Cuboid(width,height,depth)
@@ -593,7 +596,7 @@ function initCuboidPacking(packCounter)
 					var thisPositionRuledOut = false;
 					for(var j = 0, jl = collideableCuboids.length; j < jl; j++)
 					{
-						if( collideableCuboids[j] !== this && checkIntersectionOfBoxMeshes(this,collideableCuboids[j]) )
+						if( collideableCuboids[j] !== this && checkBoxMeshOverlap(this,collideableCuboids[j]) )
 						{
 							thisPositionRuledOut = true;
 							break;
@@ -618,9 +621,39 @@ function initCuboidPacking(packCounter)
 				clickedPoint = null;
 			}
 
-			this.material.color.g = checkIntersectionOfBoxMeshes(this,bin) ? 1:0
+			this.material.color.g = checkBoxMeshContainment(this,bin) ? 1:0
 		}
 
 		return cuboid
 	}
+}
+
+function checkBoxMeshContainment(a,b)
+{
+	console.assert(a.parent === b.parent)
+
+	var convertedBoxAMin = a.geometry.boundingBox.min.clone().multiply(a.scale).add(a.position)
+	var convertedBoxAMax = a.geometry.boundingBox.max.clone().multiply(a.scale).add(a.position)
+	var convertedBoxA = new THREE.Box3(convertedBoxAMin,convertedBoxAMax)
+
+	var convertedBoxBMin = b.geometry.boundingBox.min.clone().multiply(b.scale).add(b.position)
+	var convertedBoxBMax = b.geometry.boundingBox.max.clone().multiply(b.scale).add(b.position)
+	var convertedBoxB = new THREE.Box3(convertedBoxBMin,convertedBoxBMax)
+
+	return convertedBoxA.containsBox(convertedBoxB)
+}
+
+function checkBoxMeshOverlap(a,b)
+{
+	console.assert(a.parent === b.parent)
+
+	var convertedBoxAMin = a.geometry.boundingBox.min.clone().multiply(a.scale).add(a.position)
+	var convertedBoxAMax = a.geometry.boundingBox.max.clone().multiply(a.scale).add(a.position)
+	var convertedBoxA = new THREE.Box3(convertedBoxAMin,convertedBoxAMax)
+
+	var convertedBoxBMin = b.geometry.boundingBox.min.clone().multiply(b.scale).add(b.position)
+	var convertedBoxBMax = b.geometry.boundingBox.max.clone().multiply(b.scale).add(b.position)
+	var convertedBoxB = new THREE.Box3(convertedBoxBMin,convertedBoxBMax)
+
+	return convertedBoxA.intersectsBox(convertedBoxB)
 }
