@@ -2,76 +2,15 @@
 
 function initClt()
 {
-	var fingerGame = initFinger()
+	// var fingerGame = initFinger()
 
-	var dummyChapter = {
-		setUp:"function(){}",
-		update:"function(){}",
-		setDown:"function(){}"
-	}
-
-	var chapter = dummyChapter
-
-	updateChapter = function(newChapter)
-	{
-		eval(chapter.setDown)
-		chapter = newChapter
-		eval(chapter.setUp)
-	}
-	objectsToBeUpdated.push(chapter)
-
-	// var clickableDistributions = initClickableDistributions(false,3)
+	var clickableDistributions = initClickableDistributions(true,3)
 	// makeCupGame(clickableDistributions, 7)
 
 	// var coloredBalls = initColoredBalls(3)
-	// makeCupGame(coloredBalls, 2) //11
+	// makeCupGame(coloredBalls, 11) //11
 
-	var chapter = "simpleBalls";
-	var chapterMonitorer = {}
-	var counter = 0
-	function setChapter(newChapter)
-	{
-		if( newChapter !== fingerGame && chapter === fingerGame )
-		{
-			fingerGame.setDown()
-		}
-		if( newChapter === fingerGame && !fingerGame.isSetUp)
-		{
-			fingerGame.setUp()
-		}
-
-		chapter = newChapter
-	}
-	chapterMonitorer.update = function()
-	{
-		switch(chapter)
-		{
-			case "simpleBalls":
-				setChapter("fingerGame")
-
-				break;
-
-			case "fingerGame":
-				if(!fingerGame.isSetUp )
-				{
-					fingerGame.setUp()
-				}
-
-				counter++
-				if( counter > 300)
-				{
-					chapter = "empty"
-				}
-
-				break;
-
-			case "empty":
-				console.log("yo")
-
-				break;
-		}
-	}
-	objectsToBeUpdated.push(chapterMonitorer)
+	
 }
 
 /*
@@ -82,7 +21,11 @@ function initClt()
 		Test on their computer (speedup? ;_;)
 		Test in the school
 
+	Teacher can control scramble amount
+
 	Want to be able to hold down
+
+	You wanna click some 3D model in mimicry of the mug
 
 	peer instruction questions
 	"patient 1", "patient 2"
@@ -786,37 +729,6 @@ function makeCupGame( objectsToHide, defaultScrambleAmount )
 	}
 
 	var duplicate = null
-
-	// var texture = new THREE.TextureLoader().load( "data/textures/curtain.png" )
-	// var curtain = new THREE.Mesh(new THREE.PlaneGeometry(2,1), new THREE.MeshLambertMaterial({map:texture, transparent:true, color:0xA0A0FF, depthTest:false}))
-	// curtain.geometry.vertices[0].x = 0
-	// curtain.geometry.vertices[2].x = 0
-	// curtain.castShadow = true
-	// curtain.closed = false;
-	// var widthWhenOpen = cupRadius * 3.4
-	// curtain.scale.setScalar(widthWhenOpen)
-	// curtain.getHiddenPosition = function()
-	// {
-	// 	var hiddenPosition = this.position.clone()
-	// 	hiddenPosition.x += widthWhenOpen / 2;
-	// 	return hiddenPosition
-	// }
-	// curtain.update = function()
-	// {
-	// 	if( this.closed )
-	// 	{
-	// 		var intendedScale = 1
-	// 	}
-	// 	else
-	// 	{
-	// 		var intendedScale = widthWhenOpen
-	// 	}
-	// 	this.scale.x += (intendedScale - this.scale.x) * 0.1
-	// }
-	// curtain.unusedPosition = new THREE.Vector3(-0.9,0,0)
-	// objectsToBeUpdated.push(curtain)
-	// scene.add(curtain)
-	// curtain.position.copy(curtain.unusedPosition)
 
 	//"story"
 	{

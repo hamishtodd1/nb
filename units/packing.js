@@ -2,18 +2,21 @@ var binColor = new THREE.Color(0.8,0.8,0.8);
 var transparentMaterial = new THREE.MeshPhongMaterial({transparent:true, opacity: 0.3, color:binColor})
 
 /*
-	Zeimlight version
-		"Where mathematics throws its hand up: cuboid packing"
-		Stuff about knapsack problem
-
 	Chapters
 		Stories
 			Tell them a story about someone failing to see that they could get a few extra pacemakers in, someone dies
 			Transferring bednets across africa
 			"You're in charge of a team and you're going to be doing this multiple times. You can increase your pay 5%""
+			Stuff about lorry
 		They compete to see how many they can get in
-		Same, but with rotation
+		Same, but with rotation and a bigger container
 		resize the container and more pop in
+		Gotta get a certain number in
+		And there's a counter saying how many
+		Multiple choice for how many and you can see them in there (have to count)
+		Multiple choice for how many and you have to multiply them/picture it (but not rotate them)
+		Same but you have to rotate them
+
 		Pack circles into rectangle
 		You're a bee and you want lots of cells
 		You're evolution packing circlular eye things onto a spherical big eye
@@ -71,6 +74,11 @@ var transparentMaterial = new THREE.MeshPhongMaterial({transparent:true, opacity
 	poster tubes
 	tins of beans
 
+	Zeimlight version
+		"Where mathematics throws its hand up: cuboid packing"
+		Stuff about knapsack problem
+		An illustration of NP-hard stuff
+
 	Applications
 		Origami
 		Oranges
@@ -84,19 +92,57 @@ var transparentMaterial = new THREE.MeshPhongMaterial({transparent:true, opacity
 
 function initPacking()
 {
-	// initResizingRectangle()
+	{
+		var packCounter = makeTextSign("")
+		packCounter.stringPrecedingScore = "Boxes packed: "
+		objectsToBeUpdated.push(packCounter)
+		packCounter.position.x = -0.95
+		packCounter.position.y = -0.95 / (16/9)
+		packCounter.geometry = new THREE.OriginCorneredPlaneBufferGeometry(0.05,0.05)
+		scene.add(packCounter)
+	}
+
+	{
+		var applicationButton = makeTextSign( "Different object" )
+		applicationButton.scale.multiplyScalar(1.6)
+		applicationButton.position.y = 0.5
+		clickables.push(applicationButton)
+
+		var cuboidsToChange = []
+		var applications = []
+		applicationButton.onClick = function()
+		{
+			var newIndex = Math.floor(Math.random() * applications.length)
+			//ideally you can't get the same one repeatedly
+			for(var i = 0; i < cuboidsToChange.length; i++)
+			{
+				
+			}
+		}
+		scene.add(applicationButton)
+	}
+
+	// initCuboidPacking(packCounter)
+	initResizingRectangle(packCounter)
+	return
 
 	// initCircleInRectanglePacking()
 	// initCircleOnSpherePacking()
-	// initCuboidPacking()
 
-	new THREE.OBJLoader().load("data/meshes/book.obj", function(a)
+	new THREE.OBJLoader().load("data/meshes/book.obj", function(obj)
 	{
-		a.scale.multiplyScalar(0.1)
-		scene.add(a)
+		var scaleMatrix = new THREE.Matrix4().makeScale(0.1,0.1,0.1)
+		var coverGeometry = obj.children[1].geometry.applyMatrix( scaleMatrix )
+		coverGeometry.computeBoundingBox()
+
+		var pagesGeometry = obj.children[2].geometry.applyMatrix( scaleMatrix )
+
+		var book = new THREE.Mesh(coverGeometry, new THREE.MeshPhongMaterial({color:0xFF0000}) )
+		book.add( new THREE.Mesh(pagesGeometry, new THREE.MeshBasicMaterial({color:0xFFFFFF}) ) )
+
+		scene.add(book)
 	})
 	
-
 	return
 
 	var cereal = new THREE.Group()
@@ -159,12 +205,35 @@ function initPacking()
 	return
 }
 
-function initResizingRectangle()
+function initResizingRectangle(packCounter)
 {
 	var cuboidInitialDimension = 0.5
 	var cuboid = new THREE.Mesh(new THREE.CubeGeometry(cuboidInitialDimension,cuboidInitialDimension,cuboidInitialDimension), transparentMaterial)
 	cuboid.geometry.computeBoundingBox()
 	// cuboid.position.x = -0.5
+
+	var cuboidsInside = Array(1);
+	var placeholderGeo = new THREE.BoxBufferGeometry(1,1,1).applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0.5,0.5))
+	var placeholderMat = new THREE.MeshPhongMaterial()
+	for(var i = 0; i < cuboidsInside.length; i++)
+	{
+		cuboidsInside[i] = new THREE.Group();
+		cuboidsInside[i].add(new THREE.Mesh(placeholderGeo,placeholderMat))
+		// cuboid.add(cuboidsInside[i])
+	}
+
+	packCounter.update = function()
+	{
+		var score = 0;
+		for(var i = 0; i < cuboidsInside.length; i++)
+		{
+			if( cuboidsInside[i].visible === true )
+			{
+				score++
+			}
+		}
+		packCounter.updateText(packCounter.stringPrecedingScore + score)
+	}
 
 	var vertexGeometry = new THREE.SphereBufferGeometry(0.03)
 	var vertexMaterial = new THREE.MeshPhongMaterial({color:0xFFD700})
@@ -229,22 +298,31 @@ function initResizingRectangle()
 	var mouseIntersectionWithFacePlane = null
 
 	objectsToBeUpdated.push(cuboid)
+
+	//dunno why you're doing this
+	var rayCaster = new THREE.Raycaster()
+
 	cuboid.update = function()
 	{
 		//aka onClick
 		if(mouse.clicking && !mouse.oldClicking)
 		{
-			var localRay = mouse.rayCaster.ray.clone()
-			localRay.direction.add(localRay.origin)
+			rayCaster.ray.copy(mouse.rayCaster.ray)
+			rayCaster.ray.direction.add(rayCaster.ray.origin)
 
-			cuboid.worldToLocal(localRay.origin)
-			cuboid.worldToLocal(localRay.direction)
+			cuboid.worldToLocal(rayCaster.ray.origin)
+			cuboid.worldToLocal(rayCaster.ray.direction)
 
-			localRay.direction.sub(localRay.origin)
-			localRay.direction.normalize()
+			rayCaster.ray.direction.sub(rayCaster.ray.origin)
+			rayCaster.ray.direction.normalize()
 
-			if( localRay.intersectsBox( cuboid.geometry.boundingBox ) )
+			var intersections = rayCaster.intersectObject( cuboid, false )
+
+			console.log("hm")
+			if( intersections.length !== 0 )
 			{
+				console.log("Yo")
+				var intersection = intersections[0]
 				var localIntersection = intersection.point.clone()
 				this.worldToLocal(localIntersection)
 				grabbedVertex = cuboid.geometry.vertices[ getClosestPointToPoint(localIntersection,cuboid.geometry.vertices) ]
@@ -264,8 +342,12 @@ function initResizingRectangle()
 			}
 			var facePlane = new THREE.Plane().setFromCoplanarPoints(worldGrabbedFaceVertices[0],worldGrabbedFaceVertices[1],worldGrabbedFaceVertices[2])
 			var newMouseIntersectionWithFacePlane = mouse.rayCaster.ray.intersectPlane( facePlane )
+			if( newMouseIntersectionWithFacePlane === null)
+			{
+				//hack, projective plane alert
+				return
+			}
 			var displacement = newMouseIntersectionWithFacePlane.clone().sub(mouseIntersectionWithFacePlane)
-			// console.log(displacement)
 
 			var oldGrabbedVertex = grabbedVertex.clone()
 			grabbedVertex.add(displacement)
@@ -356,7 +438,7 @@ function initCircleOnSpherePacking()
 	}
 }
 
-function initCuboidPacking()
+function initCuboidPacking(packCounter)
 {
 	var _scene = new THREE.Object3D();
 	scene.add(_scene)
@@ -416,8 +498,6 @@ function initCuboidPacking()
 	bin.add( new THREE.Mesh( binGeometry, new THREE.MeshPhongMaterial({side:THREE.BackSide,color:binColor}) ) );
 	_scene.add(bin)
 
-	var stringPrecedingScore = "Boxes packed: "
-	var packCounter = makeTextSign(stringPrecedingScore + "0")
 	packCounter.update = function()
 	{
 		var score = 0;
@@ -433,7 +513,7 @@ function initCuboidPacking()
 				thereIsALooseOne = true
 			}
 		}
-		packCounter.updateText(stringPrecedingScore + score)
+		packCounter.updateText(packCounter.stringPrecedingScore + score)
 
 		if( !thereIsALooseOne && !mouse.clicking )
 		{
@@ -441,11 +521,6 @@ function initCuboidPacking()
 			newCuboid.position.copy(originalCuboidPosition)
 		}
 	}
-	objectsToBeUpdated.push(packCounter)
-	packCounter.position.x = -0.95
-	packCounter.position.y = -0.95 / (16/9)
-	packCounter.geometry = new THREE.OriginCorneredPlaneBufferGeometry(0.05,0.05)
-	scene.add(packCounter)
 
 	var collideableCuboids = []
 	var dimension = 4

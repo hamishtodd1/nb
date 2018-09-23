@@ -1,3 +1,5 @@
+//touch as well! 
+
 function initMouse() 
 {
 	var asynchronous = {
