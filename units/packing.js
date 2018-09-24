@@ -1,6 +1,3 @@
-var binColor = new THREE.Color(0.8,0.8,0.8);
-var transparentMaterial = new THREE.MeshPhongMaterial({transparent:true, opacity: 0.3, color:binColor})
-
 /*
 	Chapters
 		Stories
@@ -8,11 +5,12 @@ var transparentMaterial = new THREE.MeshPhongMaterial({transparent:true, opacity
 			Transferring bednets across africa
 			"You're in charge of a team and you're going to be doing this multiple times. You can increase your pay 5%""
 			Stuff about lorry
+			Also you're packing a suitcase for a holiday
+
 		They compete to see how many they can get in
 		Same, but with rotation and a bigger container
 		resize the container and more pop in
 		Gotta get a certain number in. Make sure they're numbers with 3 prime factors?
-		And there's a counter saying how many
 		Multiple choice for how many and you can see them in there (have to count)
 		Multiple choice for how many and you have to multiply them/picture it (but not rotate them)
 		Same but you have to rotate them
@@ -98,9 +96,72 @@ function initPacking()
 		objectsToBeUpdated.push(packCounter)
 		packCounter.position.x = -0.95
 		packCounter.position.y = -0.95 / (16/9)
+		packCounter.defaultPosition = packCounter.position.clone()
 		packCounter.geometry = new THREE.OriginCorneredPlaneBufferGeometry(0.05,0.05)
 		scene.add(packCounter)
+		packCounter.excitedness = 0;
 	}
+
+	// {
+	// 	var resetButton = makeTextSign("Reset")
+	// 	resetButton.geometry = new THREE.OriginCorneredPlaneBufferGeometry(0.05,0.05)
+	// 	resetButton.position.copy(packCounter.position)
+	// 	resetButton.position.x *= -1
+	// 	resetButton.position.x -= 0.05 * resetButton.scale.x
+	// 	clickables.push(resetButton)
+	// 	resetButton.onClick = function()
+	// 	{
+	// 		console.log("yo")
+	// 	}
+	// 	scene.add(resetButton)
+	// }
+
+	{
+		var rotateButton = makeTextSign( "Rotate" )
+		rotateButton.geometry = new THREE.OriginCorneredPlaneBufferGeometry(0.05,0.05)
+		rotateButton.position.copy(packCounter.position)
+		rotateButton.position.y *= -1
+		rotateButton.position.y -= 0.05 * rotateButton.scale.y
+		scene.add(rotateButton)
+
+		objectsToBeRotated = []
+		var rotationQueued = 0;
+
+		clickables.push(rotateButton)
+		rotateButton.onClick = function()
+		{
+			rotationQueued += TAU / 3
+		}
+		objectsToBeUpdated.push(rotateButton)
+		rotateButton.update = function()
+		{
+			if(rotationQueued > 0)
+			{
+				var rotationAmount = 0.1
+				if( rotationQueued < rotationAmount )
+				{
+					rotationAmount = rotationQueued
+				}
+				rotationQueued -= rotationAmount
+
+				var cuboidRotationAxis = new THREE.Vector3(1,1,1).normalize()
+				var m = new THREE.Matrix4().makeRotationAxis(cuboidRotationAxis, -rotationAmount)
+				for(var i = 0; i < objectsToBeRotated.length; i++)
+				{
+					objectsToBeRotated[i].geometry.applyMatrix(m)
+					// objectsToBeRotated[i].rotateOnAxis( cuboidRotationAxis, -rotationAmount )
+					//and compute bounding box? ;_;
+				}
+			}
+		}
+	}
+
+	initManualPacking(packCounter)
+	// initResizingRectangle(packCounter)
+	return
+
+	// initCircleInRectanglePacking()
+	// initCircleOnSpherePacking()
 
 	{
 		var applicationButton = makeTextSign( "Different object" )
@@ -122,13 +183,6 @@ function initPacking()
 		scene.add(applicationButton)
 	}
 
-	// initCuboidPacking(packCounter)
-	initResizingRectangle(packCounter)
-	return
-
-	// initCircleInRectanglePacking()
-	// initCircleOnSpherePacking()
-
 	new THREE.OBJLoader().load("data/meshes/book.obj", function(obj)
 	{
 		var scaleMatrix = new THREE.Matrix4().makeScale(0.1,0.1,0.1)
@@ -142,67 +196,38 @@ function initPacking()
 
 		scene.add(book)
 	})
-	
-	return
 
-	var cereal = new THREE.Group()
-	scene.add(cereal)
-
-	var names = ["front", "side", "top"]
-	var addition = new THREE.Vector3(0.5,0.5,0.5)
-	for(var i = 0; i < 3; i++)
 	{
-		var texture = new THREE.TextureLoader().load('data/textures/cereal/' + names[i] + '.jpg')
-		var a = new THREE.Mesh(new THREE.PlaneGeometry(1,1), new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}) )
-		var b = new THREE.Mesh(new THREE.PlaneGeometry(1,1), a.material )
-		a.position.setComponent((i+2)%3, 0.5)
-		b.position.setComponent((i+2)%3,-0.5)
+		var cereal = new THREE.Group()
+		scene.add(cereal)
 
-		a.position.add(addition)
-		b.position.add(addition)
-
-		if(i===1)
+		var names = ["front", "side", "top"]
+		var addition = new THREE.Vector3(0.5,0.5,0.5)
+		for(var i = 0; i < 3; i++)
 		{
-			a.rotation.y = b.rotation.y = TAU/4
-		}
-		if(i===2)
-		{
-			a.rotation.x = b.rotation.x = TAU/4
-		}
-		b.rotation.y += TAU / 2
-		cereal.add(a,b)
-	}
-	cereal.scale.set(0.228,0.414,0.072)
+			var texture = new THREE.TextureLoader().load('data/textures/cereal/' + names[i] + '.jpg')
+			var a = new THREE.Mesh(new THREE.PlaneGeometry(1,1), new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}) )
+			var b = new THREE.Mesh(new THREE.PlaneGeometry(1,1), a.material )
+			a.position.setComponent((i+2)%3, 0.5)
+			b.position.setComponent((i+2)%3,-0.5)
 
-	var rotateButton = makeTextSign( "Rotate" )
-	rotateButton.scale.multiplyScalar(1.6)
-	rotateButton.position.y = -0.5
-	scene.add(rotateButton)
+			a.position.add(addition)
+			b.position.add(addition)
 
-	var rotationQueued = 0;
-
-	clickables.push(rotateButton)
-	rotateButton.onClick = function()
-	{
-		rotationQueued += TAU / 3
-	}
-	objectsToBeUpdated.push(cereal)
-	cereal.update = function()
-	{
-		var rotationAxis = new THREE.Vector3(1,1,1).normalize()
-		if(rotationQueued > 0)
-		{
-			var rotationAmount = 0.1
-			if( rotationQueued < rotationAmount )
+			if(i===1)
 			{
-				rotationAmount = rotationQueued
+				a.rotation.y = b.rotation.y = TAU/4
 			}
-			rotationQueued -= rotationAmount
-			cereal.rotateOnAxis( rotationAxis, -rotationAmount )
+			if(i===2)
+			{
+				a.rotation.x = b.rotation.x = TAU/4
+			}
+			b.rotation.y += TAU / 2
+			cereal.add(a,b)
 		}
+		cereal.scale.set(0.228,0.414,0.072)
+		objectsToBeRotated.push(cereal)
 	}
-
-	return
 }
 
 function initResizingRectangle(packCounter)
@@ -213,7 +238,6 @@ function initResizingRectangle(packCounter)
 
 	packCounter.update = function()
 	{
-		return
 		var score = 0;
 		for(var i = 0; i < cuboidsInside.length; i++)
 		{
@@ -222,14 +246,15 @@ function initResizingRectangle(packCounter)
 				score++
 			}
 		}
-		packCounter.updateText(packCounter.stringPrecedingScore + score)
+		packCounter.updateText(packCounter.stringPrecedingScore + score.toString())
 	}
 
-	var containingCuboidPosition = new THREE.Vector3(0.5,0,0)
-	var containingCuboid = ResizingCuboid( containingCuboidPosition, new THREE.Vector3(1,1,1) )
+	var containingCuboid = ResizingCuboid()
+	var ccXPos = 0.5
+	containingCuboid.geometry.applyMatrix(new THREE.Matrix4().makeTranslation(ccXPos,0,0))
 
-	var cuboidToAffectLittleOnes = ResizingCuboid(new THREE.Vector3(-0.8,0,0),new THREE.Vector3(1,1,1))
-	//problem is that changing the above scale leads to nuttiness
+	var cuboidToAffectLittleOnes = ResizingCuboid()
+	cuboidToAffectLittleOnes.geometry.applyMatrix(new THREE.Matrix4().setPosition(new THREE.Vector3(-0.5,0,0) ).scale(new THREE.Vector3(0.3,0.3,0.3)))
 
 	var dimensionsInCuboids = new THREE.Vector3(10,10,10)
 	var cuboidsInside = Array(Math.round(dimensionsInCuboids.x*dimensionsInCuboids.y*dimensionsInCuboids.z) );
@@ -249,7 +274,7 @@ function initResizingRectangle(packCounter)
 			this.position.set(i,j,k)
 			this.position.addScaledVector(dimensionsInCuboids,-0.5)
 			this.position.multiply(cuboidToAffectLittleOnes.currentDimensions)
-			this.position.add(containingCuboidPosition)
+			this.position.x += ccXPos
 		}
 	}
 
@@ -266,11 +291,12 @@ function initResizingRectangle(packCounter)
 	//SERIOUSLY RESET BUTTON
 }
 
-function ResizingCuboid(sortOfPosition,sortOfScale)
+function ResizingCuboid()
 {
 	var cuboidInitialDimension = 0.5
+	var binColor = new THREE.Color(0.8,0.8,0.8);
+	var transparentMaterial = new THREE.MeshPhongMaterial({transparent:true, opacity: 0.3, color:binColor})
 	var cuboid = new THREE.Mesh(new THREE.CubeGeometry(cuboidInitialDimension,cuboidInitialDimension,cuboidInitialDimension), transparentMaterial)
-	cuboid.geometry.applyMatrix(new THREE.Matrix4().setPosition(sortOfPosition).scale(sortOfScale))
 	cuboid.geometry.computeBoundingBox()
 	cuboid.currentDimensions = new THREE.Vector3()
 
@@ -389,30 +415,6 @@ function ResizingCuboid(sortOfPosition,sortOfScale)
 
 			var oldGrabbedVertex = grabbedVertex.clone()
 			grabbedVertex.add(displacement)
-			var lowerLimit = 0.05
-
-			var grabbedVertexLocal = grabbedVertex.clone().sub(sortOfPosition)
-			var oldGrabbedVertexLocal = oldGrabbedVertex.clone().sub(sortOfPosition)
-			for(var i = 0; i < 3; i++)
-			{
-				if( oldGrabbedVertexLocal.getComponent(i) < 0)
-				{
-					if(grabbedVertexLocal.getComponent(i) > -lowerLimit)
-					{
-						grabbedVertexLocal.setComponent(i,-lowerLimit)
-					}
-				}
-
-				if( oldGrabbedVertexLocal.getComponent(i) > 0)
-				{
-					if(grabbedVertexLocal.getComponent(i) < lowerLimit)
-					{
-						grabbedVertexLocal.setComponent(i,lowerLimit)
-					}
-				}
-			}
-			grabbedVertex.copy(grabbedVertexLocal).add(sortOfPosition)
-
 			for(var d = 0; d < 3; d++)
 			{
 				for(var i = 0; i < cuboid.geometry.vertices.length; i++)
@@ -503,7 +505,7 @@ function initCircleOnSpherePacking()
 	}
 }
 
-function initCuboidPacking(packCounter)
+function initManualPacking(packCounter)
 {
 	var _scene = new THREE.Object3D();
 	scene.add(_scene)
@@ -535,7 +537,6 @@ function initCuboidPacking(packCounter)
 				// 	_scene.rotation.x -= displacement.y * 1.6;
 				// 	_scene.rotation.x = clamp(_scene.rotation.x,0,TAU/16)
 				// }
-				camera.lookAt(zeroVector)
 			}
 			else
 			{
@@ -550,16 +551,14 @@ function initCuboidPacking(packCounter)
 		}
 	}
 
-	var cuboids = [];
-	var boxGeometry = new THREE.BoxGeometry(1,1,1)
-	boxGeometry.computeBoundingBox();
-
-	var binDimensions = new THREE.Vector3().setScalar(0.4)
-	binGeometry = new THREE.BoxGeometry(binDimensions.x,binDimensions.y,binDimensions.z);
+	var binDimensions = new THREE.Vector3(0.4,0.21,0.4)
+	var binGeometry = new THREE.BoxGeometry(binDimensions.x,binDimensions.y,binDimensions.z);
 	binGeometry.applyMatrix(new THREE.Matrix4().makeTranslation( binDimensions.x/2,binDimensions.y/2,binDimensions.z/2 ))
 	binGeometry.computeBoundingBox();
+	var binColor = new THREE.Color(0.8,0.8,0.8);
+	var transparentMaterial = new THREE.MeshPhongMaterial({transparent:true, opacity: 0.3, color:binColor})
 	var bin = new THREE.Mesh( binGeometry, transparentMaterial )
-	bin.position.y = 0.01
+	// bin.position.y = 0.01
 	bin.add( new THREE.Mesh( binGeometry, new THREE.MeshPhongMaterial({side:THREE.BackSide,color:binColor}) ) );
 	_scene.add(bin)
 
@@ -569,7 +568,7 @@ function initCuboidPacking(packCounter)
 		var thereIsALooseOne = false
 		for(var i = 0; i < cuboids.length; i++)
 		{
-			if( checkBoxMeshContainment(cuboids[i],bin) )
+			if( checkBoxMeshContainment(bin, cuboids[i]) )
 			{
 				score++;
 			}
@@ -578,38 +577,59 @@ function initCuboidPacking(packCounter)
 				thereIsALooseOne = true
 			}
 		}
-		packCounter.updateText(packCounter.stringPrecedingScore + score)
+		var oldText = packCounter.text
+		packCounter.updateText(packCounter.stringPrecedingScore + score.toString())
+		if( oldText !== packCounter.text && oldText !== "")
+		{
+			packCounter.excitedness = 1;
+		}
 
 		if( !thereIsALooseOne && !mouse.clicking )
 		{
-			var newCuboid = Cuboid(0.1,0.1,0.1)
+			var newCuboid = Cuboid(0.2,0.1,0.1)
 			newCuboid.position.copy(originalCuboidPosition)
 		}
+
+		packCounter.excitedness -= frameDelta * 1.5
+		if(packCounter.excitedness < 0)
+		{
+			packCounter.excitedness = 0
+		}
+		packCounter.material.color.g = 1-packCounter.excitedness
+		packCounter.position.y = packCounter.defaultPosition.y + packCounter.excitedness * 0.06 * sq(Math.sin(frameCount * 0.2))
 	}
 
 	var collideableCuboids = []
-	var dimension = 4
+
+	var backgroundCuboidDimension = 4
 	for(var i = 0; i < 3; i++)
 	{
-		var backgroundCuboid = new THREE.Mesh(new THREE.BoxGeometry(dimension,dimension,dimension))
+		var backgroundCuboid = new THREE.Mesh(new THREE.BoxGeometry(backgroundCuboidDimension,backgroundCuboidDimension,backgroundCuboidDimension))
 		backgroundCuboid.geometry.computeBoundingBox()
 		backgroundCuboid.visible = false
-		backgroundCuboid.position.setComponent(i,-dimension/2)
+		backgroundCuboid.position.setComponent(i,-backgroundCuboidDimension/2)
 		collideableCuboids.push(backgroundCuboid)
 		_scene.add(backgroundCuboid)
 	}
 	
+	var cuboids = [];
 	function Cuboid(width,height,depth)
 	{
 		var cuboid = new THREE.Mesh(
-			boxGeometry,
+			new THREE.BoxGeometry(width,height,depth), 
 			new THREE.MeshPhongMaterial({color:new THREE.Color(0.5,0.5,0.5)})
 		)
+		cuboid.geometry.computeBoundingBox()
+		objectsToBeRotated.push(cuboid)
 		cuboid.castShadow = true;
-		cuboid.scale.set(width,height,depth)
-		cuboids.push(cuboid);
 		collideableCuboids.push(cuboid)
 		_scene.add(cuboid)
+
+		if(cuboids.length > 0)
+		{
+			cuboid.rotation.copy(cuboids[0].rotation)
+		}
+		cuboids.push(cuboid);
 
 		var clickedPoint = new THREE.Vector3();
 		clickables.push(cuboid)
@@ -628,15 +648,13 @@ function initCuboidPacking(packCounter)
 				var relativeNcp = this.parent.worldToLocal(newClickedPoint.clone())
 				var relativeCp = this.parent.worldToLocal(clickedPoint.clone())
 
-				packCounter.material.map.needsUpdate = true
-
 				var delta = relativeNcp.clone().sub(relativeCp)
 				this.position.add(delta);
 
 				var cameraPosition = this.parent.worldToLocal(camera.position.clone())
 				var fullLengthToCheckAlong = 2
 				var furthestPositionToCheck = relativeCp.sub(cameraPosition).setLength(fullLengthToCheckAlong).add(cameraPosition)
-				var numPositionsToCheck = 80
+				var numPositionsToCheck = 300
 				for(var i = 0; i < numPositionsToCheck; i++)
 				{
 					this.position.lerpVectors(furthestPositionToCheck,cameraPosition,i/numPositionsToCheck)
@@ -658,7 +676,6 @@ function initCuboidPacking(packCounter)
 						break
 					}
 				}
-				console.log(i)
 				// this.position.add( rcpToCamera.multiplyScalar(Math.random() * 0.1 - 0.05) )
 
 				clickedPoint.copy(newClickedPoint)
@@ -668,7 +685,7 @@ function initCuboidPacking(packCounter)
 				clickedPoint = null;
 			}
 
-			this.material.color.g = checkBoxMeshContainment(this,bin) ? 1:0
+			this.material.color.g = checkBoxMeshContainment(bin,this) ? 1:0
 		}
 
 		return cuboid

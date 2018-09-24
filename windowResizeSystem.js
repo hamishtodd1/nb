@@ -3,7 +3,7 @@ function initStage()
 	var backwardExtension = 0.6;
 	stage = new THREE.Mesh( 
 		new THREE.BoxGeometry(2*AUDIENCE_CENTER_TO_SIDE_OF_FRAME_AT_Z_EQUALS_0,2*AUDIENCE_CENTER_TO_TOP_OF_FRAME_AT_Z_EQUALS_0,backwardExtension),
-		new THREE.MeshStandardMaterial({side:THREE.BackSide, vertexColors:THREE.FaceColors})
+		new THREE.MeshStandardMaterial({side:THREE.BackSide, vertexColors:THREE.FaceColors, depthTest:false})
 	);
 	stage.geometry.applyMatrix(new THREE.Matrix4().makeTranslation(0,0,-backwardExtension/2))
 	for(var i = 0; i< stage.geometry.faces.length; i++)
@@ -24,8 +24,7 @@ function initStage()
 	stage.material.metalness = 0.1;
 	stage.material.roughness = 0.2;
 	stage.receiveShadow = true;
-	//you only see the back half
-	scene.add(stage)
+	camera.add(stage)
 
 	var pointLight = new THREE.PointLight(0xFFFFFF, 0.4, 5.3);
 	pointLight.shadow.camera.far = 10;
@@ -64,7 +63,8 @@ function initCameraAndRendererResizeSystem(renderer)
 			camera.updateProjectionMatrix();
 		}
 
-		camera.position.z = 1.2; //feel free to change
+		camera.position.z = 0.8; //feel free to change
+		stage.position.z = -camera.position.z
 		respondToResize();
 		window.addEventListener( 'resize', respondToResize, false );
 	}
