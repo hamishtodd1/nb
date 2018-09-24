@@ -519,9 +519,7 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 
 function makeCupGame( objectsToHide, defaultScrambleAmount )
 {
-	var correctSign = makeTextSign("Correct!")
-	var incorrectSign = makeTextSign("Incorrect!")
-
+	//need to bring signs back from the repo
 	for(var i = 0; i < objectsToHide.length; i++)
 	{
 		objectsToHide[i].onClick = function()
@@ -535,22 +533,6 @@ function makeCupGame( objectsToHide, defaultScrambleAmount )
 				incorrectSign.material.opacity = 1
 			}
 			duplicate.remove(duplicate.children[0])
-		}
-	}
-
-	var signs = [correctSign,incorrectSign]
-	for(var i = 0; i < signs.length; i++)
-	{
-		signs[i].material.transparent = true
-		signs[i].material.opacity = 0
-		signs[i].material.depthTest = false
-		signs[i].scale.multiplyScalar( 4 )
-		signs[i].position.x = 0.5
-		scene.add( signs[i] )
-		objectsToBeUpdated.push(signs[i])
-		signs[i].update = function()
-		{
-			this.material.opacity -= 0.015
 		}
 	}
 

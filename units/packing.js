@@ -6,11 +6,12 @@
 			"You're in charge of a team and you're going to be doing this multiple times. You can increase your pay 5%""
 			Stuff about lorry
 			Also you're packing a suitcase for a holiday
+			If you want to be able to program a robot to do this
 
 		They compete to see how many they can get in
-		Same, but with rotation and a bigger container
+			Same, but with rotation and a bigger container
 		resize the container and more pop in
-		Gotta get a certain number in. Make sure they're numbers with 3 prime factors?
+			Gotta get a certain number in. Make sure they're numbers with 3 prime factors?
 		Multiple choice for how many and you can see them in there (have to count)
 		Multiple choice for how many and you have to multiply them/picture it (but not rotate them)
 		Same but you have to rotate them
@@ -19,7 +20,6 @@
 		You're a bee and you want lots of cells
 		You're evolution packing circlular eye things onto a spherical big eye
 		Pack spheres into sphere (gobstopper)
-		Suitcase?
 		Signal processing
 			Pack lines into line
 
@@ -73,7 +73,7 @@
 	tins of beans
 
 	Zeimlight version
-		"Where mathematics throws its hand up: cuboid packing"
+		"Where geometers throws its hand up: cuboid packing"
 		Stuff about knapsack problem
 		An illustration of NP-hard stuff
 
@@ -92,8 +92,9 @@ function initPacking()
 {
 	{
 		var packCounter = makeTextSign("")
-		packCounter.stringPrecedingScore = "Boxes packed: "
+		packCounter.stringPrecedingScore = "Packed: "
 		objectsToBeUpdated.push(packCounter)
+		packCounter.update = function(){}
 		packCounter.position.x = -0.95
 		packCounter.position.y = -0.95 / (16/9)
 		packCounter.defaultPosition = packCounter.position.clone()
@@ -105,9 +106,9 @@ function initPacking()
 	// {
 	// 	var resetButton = makeTextSign("Reset")
 	// 	resetButton.geometry = new THREE.OriginCorneredPlaneBufferGeometry(0.05,0.05)
-	// 	resetButton.position.copy(packCounter.position)
-	// 	resetButton.position.x *= -1
-	// 	resetButton.position.x -= 0.05 * resetButton.scale.x
+	// 	rotateButton.position.copy(packCounter.position)
+	// 	rotateButton.position.y *= -1
+	// 	rotateButton.position.y -= 0.05 * rotateButton.scale.y
 	// 	clickables.push(resetButton)
 	// 	resetButton.onClick = function()
 	// 	{
@@ -120,8 +121,9 @@ function initPacking()
 		var rotateButton = makeTextSign( "Rotate" )
 		rotateButton.geometry = new THREE.OriginCorneredPlaneBufferGeometry(0.05,0.05)
 		rotateButton.position.copy(packCounter.position)
-		rotateButton.position.y *= -1
-		rotateButton.position.y -= 0.05 * rotateButton.scale.y
+		rotateButton.position.x *= -1
+		rotateButton.position.x -= 0.05 * rotateButton.scale.x
+		rotateButton.beenClicked = false
 		scene.add(rotateButton)
 
 		objectsToBeRotated = []
@@ -131,6 +133,7 @@ function initPacking()
 		rotateButton.onClick = function()
 		{
 			rotationQueued += TAU / 3
+			this.beenClicked = true
 		}
 		objectsToBeUpdated.push(rotateButton)
 		rotateButton.update = function()
@@ -153,10 +156,21 @@ function initPacking()
 					//and compute bounding box? ;_;
 				}
 			}
+
+			if( !this.beenClicked )
+			{
+				var glowColor = 0.7 + 0.3 * (Math.sin(frameCount * 0.1)+1)/2
+				this.material.color.setRGB(1,glowColor,1)
+			}
+			else
+			{
+				this.material.color.setRGB(1,1,1)
+			}
 		}
 	}
 
-	initManualPacking(packCounter)
+	initMultipleChoice()
+	// initManualPacking(packCounter)
 	// initResizingRectangle(packCounter)
 	return
 
@@ -230,6 +244,107 @@ function initPacking()
 	}
 }
 
+function initMultipleChoice()
+{
+	var clickOnTheNumberOfThese = makeTextSign("Click on one of these:")
+	clickOnTheNumberOfThese.geometry = new THREE.OriginCorneredPlaneBufferGeometry(1,1)
+	clickOnTheNumberOfThese.scale.multiplyScalar(0.05)
+	clickOnTheNumberOfThese.position.x -= clickOnTheNumberOfThese.scale.x
+	clickOnTheNumberOfThese.position.y = 0.5
+
+	var answers = Array(200)
+	for(var i = 0; i < answers.length; i++)
+	{
+		answers[i] = makeTextSign(i.toString())
+		answers[i].i = i
+		answers[i].onClick = function()
+		{
+			if( this === correctAnswer )
+			{
+				correctSign.material.opacity = 1
+			}
+			else
+			{
+				incorrectSign.material.opacity = 1
+				incorrectAnswer = this
+			}
+
+			countdownTilNext = 2.3
+		}
+		clickables.push(answers[i])
+		answers[i].position.y = -0.5
+	}
+
+	var countdownTilNext = Infinity;
+	var incorrectAnswer = null
+
+	//you want to show rulers next to both the resizing cuboids
+	//and have duplicates of the little one fill up the big. After rotating!
+
+	var correctAnswer = answers[100]
+
+	var primeNumbers = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,51]
+
+	var correctSign = makeTextSign("Correct!")
+	correctSign.material.color.setRGB(0,1,0)
+	var incorrectSign = makeTextSign("Incorrect!")
+	incorrectSign.material.color.setRGB(1,0,0)
+	var signs = [correctSign,incorrectSign]
+	for(var i = 0; i < signs.length; i++)
+	{
+		signs[i].visible = false
+		signs[i].scale.multiplyScalar( 4 )
+		scene.add( signs[i] )
+	}
+
+	function setUpQuestion()
+	{
+		var correctValue = 100
+		var numPresentedAnswers = 9; //also the minimum answer
+		var whereCorrectValueIsInAnswers = Math.floor( Math.random() * numPresentedAnswers )
+		var lowestAnswerToPresent = correctValue - whereCorrectValueIsInAnswers;
+		for(var i = 0; i < numPresentedAnswers; i++ )
+		{
+			var answer = answers[lowestAnswerToPresent+i]
+			scene.add(answer)
+			answer.position.x = 0.16 * (i-(numPresentedAnswers-1)/2)
+		}
+
+		for(var i = 0; i < signs.length; i++)
+		{
+			signs[i].visible = false
+		}
+	}
+	setUpQuestion()
+
+	var handler = {}
+	objectsToBeUpdated.push(handler)
+	handler.update = function()
+	{
+		countdownTilNext -= frameDelta
+		if(countdownTilNext < 0)
+		{
+			countdownTilNext = Infinity
+			correctAnswer.material.color.setRGB(1,1,1)
+			incorrectAnswer.material.color.setRGB(1,1,1)
+
+			for(var i = 0; i < answers.length; i++)
+			{
+				scene.remove(answers[i])
+			}
+
+			setUpQuestion()
+		}
+
+		if(countdownTilNext !== Infinity)
+		{
+			var oscillating = sq(Math.sin(frameCount * 0.1))
+			correctAnswer.material.color.setRGB(oscillating,1,oscillating)
+			incorrectAnswer.material.color.setRGB(1,1-oscillating,1-oscillating)
+		}
+	}
+}
+
 function initResizingRectangle(packCounter)
 {
 	// camera.position.applyAxisAngle(yUnit,TAU/8)
@@ -287,8 +402,6 @@ function initResizingRectangle(packCounter)
 	}
 	}
 	}
-
-	//SERIOUSLY RESET BUTTON
 }
 
 function ResizingCuboid()
@@ -615,8 +728,9 @@ function initManualPacking(packCounter)
 	var cuboids = [];
 	function Cuboid(width,height,depth)
 	{
+		var geo = cuboids.length === 0 ? new THREE.BoxGeometry(width,height,depth):cuboids[0].geometry.clone()
 		var cuboid = new THREE.Mesh(
-			new THREE.BoxGeometry(width,height,depth), 
+			geo,
 			new THREE.MeshPhongMaterial({color:new THREE.Color(0.5,0.5,0.5)})
 		)
 		cuboid.geometry.computeBoundingBox()

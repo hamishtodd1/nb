@@ -40,6 +40,5 @@ function updateChapter(){} //gets redefined elsewhere
 	})
 
 	updateChapter()
-	console.log(chapter)
 	socket.on("chapter update",updateChapter)
 })();
