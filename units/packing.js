@@ -213,6 +213,7 @@ function initResizingRectangle(packCounter)
 
 	packCounter.update = function()
 	{
+		return
 		var score = 0;
 		for(var i = 0; i < cuboidsInside.length; i++)
 		{
@@ -224,12 +225,11 @@ function initResizingRectangle(packCounter)
 		packCounter.updateText(packCounter.stringPrecedingScore + score)
 	}
 
-	var containingCuboid = ResizingCuboid()
-	var ccXPos = 0.5
-	containingCuboid.geometry.applyMatrix(new THREE.Matrix4().makeTranslation(ccXPos,0,0))
+	var containingCuboidPosition = new THREE.Vector3(0.5,0,0)
+	var containingCuboid = ResizingCuboid( containingCuboidPosition, new THREE.Vector3(1,1,1) )
 
-	var cuboidToAffectLittleOnes = ResizingCuboid()
-	cuboidToAffectLittleOnes.geometry.applyMatrix(new THREE.Matrix4().setPosition(new THREE.Vector3(-0.8,0,0) ).scale(new THREE.Vector3(0.3,0.3,0.3)))
+	var cuboidToAffectLittleOnes = ResizingCuboid(new THREE.Vector3(-0.8,0,0),new THREE.Vector3(1,1,1))
+	//problem is that changing the above scale leads to nuttiness
 
 	var dimensionsInCuboids = new THREE.Vector3(10,10,10)
 	var cuboidsInside = Array(Math.round(dimensionsInCuboids.x*dimensionsInCuboids.y*dimensionsInCuboids.z) );
@@ -249,7 +249,7 @@ function initResizingRectangle(packCounter)
 			this.position.set(i,j,k)
 			this.position.addScaledVector(dimensionsInCuboids,-0.5)
 			this.position.multiply(cuboidToAffectLittleOnes.currentDimensions)
-			this.position.x += ccXPos
+			this.position.add(containingCuboidPosition)
 		}
 	}
 
@@ -266,10 +266,11 @@ function initResizingRectangle(packCounter)
 	//SERIOUSLY RESET BUTTON
 }
 
-function ResizingCuboid()
+function ResizingCuboid(sortOfPosition,sortOfScale)
 {
 	var cuboidInitialDimension = 0.5
 	var cuboid = new THREE.Mesh(new THREE.CubeGeometry(cuboidInitialDimension,cuboidInitialDimension,cuboidInitialDimension), transparentMaterial)
+	cuboid.geometry.applyMatrix(new THREE.Matrix4().setPosition(sortOfPosition).scale(sortOfScale))
 	cuboid.geometry.computeBoundingBox()
 	cuboid.currentDimensions = new THREE.Vector3()
 
@@ -388,6 +389,30 @@ function ResizingCuboid()
 
 			var oldGrabbedVertex = grabbedVertex.clone()
 			grabbedVertex.add(displacement)
+			var lowerLimit = 0.05
+
+			var grabbedVertexLocal = grabbedVertex.clone().sub(sortOfPosition)
+			var oldGrabbedVertexLocal = oldGrabbedVertex.clone().sub(sortOfPosition)
+			for(var i = 0; i < 3; i++)
+			{
+				if( oldGrabbedVertexLocal.getComponent(i) < 0)
+				{
+					if(grabbedVertexLocal.getComponent(i) > -lowerLimit)
+					{
+						grabbedVertexLocal.setComponent(i,-lowerLimit)
+					}
+				}
+
+				if( oldGrabbedVertexLocal.getComponent(i) > 0)
+				{
+					if(grabbedVertexLocal.getComponent(i) < lowerLimit)
+					{
+						grabbedVertexLocal.setComponent(i,lowerLimit)
+					}
+				}
+			}
+			grabbedVertex.copy(grabbedVertexLocal).add(sortOfPosition)
+
 			for(var d = 0; d < 3; d++)
 			{
 				for(var i = 0; i < cuboid.geometry.vertices.length; i++)
