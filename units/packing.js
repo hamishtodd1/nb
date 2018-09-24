@@ -252,67 +252,57 @@ function initMultipleChoice()
 	clickOnTheNumberOfThese.position.x -= clickOnTheNumberOfThese.scale.x
 	clickOnTheNumberOfThese.position.y = 0.5
 
-	var answers = Array(200)
-	for(var i = 0; i < answers.length; i++)
-	{
-		answers[i] = makeTextSign(i.toString())
-		answers[i].i = i
-		answers[i].onClick = function()
-		{
-			if( this === correctAnswer )
-			{
-				correctSign.material.opacity = 1
-			}
-			else
-			{
-				incorrectSign.material.opacity = 1
-				incorrectAnswer = this
-			}
-
-			countdownTilNext = 2.3
-		}
-		clickables.push(answers[i])
-		answers[i].position.y = -0.5
-	}
-
 	var countdownTilNext = Infinity;
-	var incorrectAnswer = null
 
 	//you want to show rulers next to both the resizing cuboids
 	//and have duplicates of the little one fill up the big. After rotating!
 
-	var correctAnswer = answers[100]
+	var correctAnswer = null
 
 	var primeNumbers = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,51]
 
-	var correctSign = makeTextSign("Correct!")
-	correctSign.material.color.setRGB(0,1,0)
-	var incorrectSign = makeTextSign("Incorrect!")
-	incorrectSign.material.color.setRGB(1,0,0)
-	var signs = [correctSign,incorrectSign]
-	for(var i = 0; i < signs.length; i++)
-	{
-		signs[i].visible = false
-		signs[i].scale.multiplyScalar( 4 )
-		scene.add( signs[i] )
-	}
+	// var correctSign = makeTextSign("Correct!")
+	// correctSign.material.color.setRGB(0,1,0)
+	// var incorrectSign = makeTextSign("Incorrect!")
+	// incorrectSign.material.color.setRGB(1,0,0)
+	// var signs = [correctSign,incorrectSign]
+	// for(var i = 0; i < signs.length; i++)
+	// {
+	// 	signs[i].visible = false
+	// 	signs[i].scale.multiplyScalar( 4 )
+	// 	scene.add( signs[i] )
+	// }
 
-	function setUpQuestion()
+	var answers = []
+	setUpQuestion = function()
 	{
 		var correctValue = 100
-		var numPresentedAnswers = 9; //also the minimum answer
+
+		var numPresentedAnswers = 9; //also the minimum correct answer
 		var whereCorrectValueIsInAnswers = Math.floor( Math.random() * numPresentedAnswers )
 		var lowestAnswerToPresent = correctValue - whereCorrectValueIsInAnswers;
 		for(var i = 0; i < numPresentedAnswers; i++ )
 		{
-			var answer = answers[lowestAnswerToPresent+i]
+			var num = lowestAnswerToPresent+i
+			var answer = makeTextSign(num.toString())
+			answers.push(answer)
 			scene.add(answer)
 			answer.position.x = 0.16 * (i-(numPresentedAnswers-1)/2)
-		}
+			answer.position.y = -0.5
 
-		for(var i = 0; i < signs.length; i++)
-		{
-			signs[i].visible = false
+			if(i === whereCorrectValueIsInAnswers)
+			{
+				correctAnswer = answer
+			}
+			clickables.push(answer)
+			answer.onClick = function()
+			{
+				if( this !== correctAnswer )
+				{
+					this.material.color.setRGB(1,0,0)
+				}
+				countdownTilNext = 2.3
+			}
 		}
 	}
 	setUpQuestion()
@@ -322,25 +312,28 @@ function initMultipleChoice()
 	handler.update = function()
 	{
 		countdownTilNext -= frameDelta
-		if(countdownTilNext < 0)
-		{
-			countdownTilNext = Infinity
-			correctAnswer.material.color.setRGB(1,1,1)
-			incorrectAnswer.material.color.setRGB(1,1,1)
-
-			for(var i = 0; i < answers.length; i++)
-			{
-				scene.remove(answers[i])
-			}
-
-			setUpQuestion()
-		}
 
 		if(countdownTilNext !== Infinity)
 		{
 			var oscillating = sq(Math.sin(frameCount * 0.1))
 			correctAnswer.material.color.setRGB(oscillating,1,oscillating)
-			incorrectAnswer.material.color.setRGB(1,1-oscillating,1-oscillating)
+		}
+
+		if(countdownTilNext < 0)
+		{
+			countdownTilNext = Infinity
+			correctAnswer.material.color.setRGB(1,1,1)
+
+			for(var i = 0; i < answers.length; i++)
+			{
+				clickables.splice(clickables.indexOf(answers[i]),1)
+				scene.remove(answers[i])
+				answers[i].material.dispose()
+				answers[i].geometry.dispose()
+			}
+			answers = []
+
+			setUpQuestion()
 		}
 	}
 }
