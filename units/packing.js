@@ -211,27 +211,6 @@ function initResizingRectangle(packCounter)
 	// camera.rotation.y += TAU / 8
 	// scene.rotation.y += TAU/8
 
-	var dimensionsInCuboids = new THREE.Vector3(7,11,13)
-	var cuboidsInside = Array(Math.round(dimensionsInCuboids.x*dimensionsInCuboids.y*dimensionsInCuboids.z) );
-	var placeholderGeo = new THREE.BoxBufferGeometry(0.9,0.9,0.9).applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0.5,0.5))
-	placeholderGeo.computeBoundingBox()
-	for(var i = 0; i < dimensionsInCuboids.x; i++) {
-	for(var j = 0; j < dimensionsInCuboids.y; j++) {
-	for(var k = 0; k < dimensionsInCuboids.z; k++) {
-		var index = k+j*dimensionsInCuboids.z+i*dimensionsInCuboids.z*dimensionsInCuboids.y;
-		cuboidsInside[index] = new THREE.Mesh(placeholderGeo,new THREE.MeshPhongMaterial({color:new THREE.Color(Math.random(),Math.random(),Math.random())}))
-
-		cuboidsInside[index].position.set(i,j,k)
-		cuboidsInside[index].position.addScaledVector(dimensionsInCuboids,-0.5)
-
-		cuboidsInside[index].scale.setScalar(0.06)
-		cuboidsInside[index].position.multiplyScalar(0.06)
-
-		scene.add(cuboidsInside[index])
-	}
-	}
-	}
-
 	packCounter.update = function()
 	{
 		var score = 0;
@@ -245,12 +224,56 @@ function initResizingRectangle(packCounter)
 		packCounter.updateText(packCounter.stringPrecedingScore + score)
 	}
 
+	var containingCuboid = ResizingCuboid()
+	var ccXPos = 0.5
+	containingCuboid.geometry.applyMatrix(new THREE.Matrix4().makeTranslation(ccXPos,0,0))
+
+	var cuboidToAffectLittleOnes = ResizingCuboid()
+	cuboidToAffectLittleOnes.geometry.applyMatrix(new THREE.Matrix4().setPosition(new THREE.Vector3(-0.8,0,0) ).scale(new THREE.Vector3(0.3,0.3,0.3)))
+
+	var dimensionsInCuboids = new THREE.Vector3(10,10,10)
+	var cuboidsInside = Array(Math.round(dimensionsInCuboids.x*dimensionsInCuboids.y*dimensionsInCuboids.z) );
+	function CuboidInside(i,j,k)
+	{
+		var index = k+j*dimensionsInCuboids.z+i*dimensionsInCuboids.z*dimensionsInCuboids.y;
+		cuboidsInside[index] = new THREE.Mesh(placeholderGeo,new THREE.MeshPhongMaterial({color:new THREE.Color(Math.random(),Math.random(),Math.random())}))
+		scene.add(cuboidsInside[index])
+
+		objectsToBeUpdated.push(cuboidsInside[index])
+		cuboidsInside[index].update = function()
+		{
+			this.visible = checkBoxMeshContainment(containingCuboid,this)
+
+			this.scale.copy(cuboidToAffectLittleOnes.currentDimensions)
+
+			this.position.set(i,j,k)
+			this.position.addScaledVector(dimensionsInCuboids,-0.5)
+			this.position.multiply(cuboidToAffectLittleOnes.currentDimensions)
+			this.position.x += ccXPos
+		}
+	}
+
+	var placeholderGeo = new THREE.BoxBufferGeometry(1,1,1).applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0.5,0.5))
+	placeholderGeo.computeBoundingBox()
+	for(var i = 0; i < dimensionsInCuboids.x; i++) {
+	for(var j = 0; j < dimensionsInCuboids.y; j++) {
+	for(var k = 0; k < dimensionsInCuboids.z; k++) {
+		CuboidInside(i,j,k)
+	}
+	}
+	}
+
+	//SERIOUSLY RESET BUTTON
+}
+
+function ResizingCuboid()
+{
 	var cuboidInitialDimension = 0.5
 	var cuboid = new THREE.Mesh(new THREE.CubeGeometry(cuboidInitialDimension,cuboidInitialDimension,cuboidInitialDimension), transparentMaterial)
-	cuboid.geometry.applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0,0))
 	cuboid.geometry.computeBoundingBox()
+	cuboid.currentDimensions = new THREE.Vector3()
 
-	var vertexGeometry = new THREE.SphereBufferGeometry(0.03)
+	var vertexGeometry = new THREE.SphereBufferGeometry(0.015)
 	var vertexMaterial = new THREE.MeshPhongMaterial({color:0xFFD700})
 	function Vertex()
 	{
@@ -260,7 +283,7 @@ function initResizingRectangle(packCounter)
 	}
 
 	var edgeMaterial = new THREE.MeshPhongMaterial({color:0x000000})
-	var edgeGeometry = new THREE.CylinderBufferGeometryUncentered(0.02,1)
+	var edgeGeometry = new THREE.CylinderBufferGeometryUncentered(0.01,1)
 	function Edge(start,end)
 	{
 		var edge = new THREE.Mesh(edgeGeometry,edgeMaterial )
@@ -380,11 +403,6 @@ function initResizingRectangle(packCounter)
 			cuboid.geometry.computeBoundingBox()
 			mouseIntersectionWithFacePlane.copy(newMouseIntersectionWithFacePlane)
 
-			for(var i = 0; i < cuboidsInside.length; i++)
-			{
-				cuboidsInside[i].visible = checkBoxMeshContainment(cuboid,cuboidsInside[i])
-			}
-
 			if(!mouse.clicking)
 			{
 				grabbedVertex = null
@@ -394,7 +412,11 @@ function initResizingRectangle(packCounter)
 		}
 		cuboid.updateVerticesAndEdges()
 		cuboid.updateMatrixWorld()
+
+		cuboid.geometry.boundingBox.getSize(cuboid.currentDimensions)
 	}
+
+	return cuboid
 }
 
 function initCircleInRectanglePacking()
