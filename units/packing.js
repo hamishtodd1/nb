@@ -1,17 +1,9 @@
 /*
 	Chapters
-		Stories
-			Tell them a story about someone failing to see that they could get a few extra pacemakers in, someone dies
-			Transferring bednets across africa
-			"You're in charge of a team and you're going to be doing this multiple times. You can increase your pay 5%""
-			Stuff about lorry
-			Also you're packing a suitcase for a holiday
-			If you want to be able to program a robot to do this
-
 		They compete to see how many they can get in
 			Same, but with rotation and a bigger container
 		resize the container and more pop in
-			Gotta get a certain number in. Make sure they're numbers with 3 prime factors?
+			Gotta get a certain number in
 		Multiple choice for how many and you can see them in there (have to count)
 		Multiple choice for how many and you have to multiply them/picture it (but not rotate them)
 		Same but you have to rotate them
@@ -99,8 +91,72 @@ function initPacking()
 		packCounter.position.y = -0.95 / (16/9)
 		packCounter.defaultPosition = packCounter.position.clone()
 		packCounter.geometry = new THREE.OriginCorneredPlaneBufferGeometry(0.05,0.05)
-		scene.add(packCounter)
+		camera.add(packCounter)
+		packCounter.position.z = -camera.position.z
 		packCounter.excitedness = 0;
+	}
+
+	// {
+	// 	var rightArrow = new THREE.Mesh(new THREE.Geometry(), new THREE.MeshBasicMaterial({side:THREE.DoubleSide, color:0xFF0000}))
+	// 	rightArrow.geometry.vertices.push(new THREE.Vector3(0,0,0),new THREE.Vector3(-1,1,0),new THREE.Vector3(-1,-1,0))
+	// 	rightArrow.geometry.faces.push(new THREE.Face3(0,1,2))
+	// 	rightArrow.scale.multiplyScalar(0.07)
+	// 	var leftArrow = rightArrow.clone()
+	// 	leftArrow.scale.x *= -1
+	// 	rightArrow.position.x = 1
+	// 	leftArrow.position.x = -1
+
+	// 	camera.add(rightArrow,leftArrow)
+	// 	leftArrow.position.z = rightArrow.position.z = -camera.position.z
+
+	// 	clickables.push(rightArrow)
+	// 	rightArrow.onClick = function()
+	// 	{
+	// 		for(var i = scene.children.length-1; i > -1; i--)
+	// 		{
+	// 			if(scene.children[i] !== camera)
+	// 			{
+	// 				scene.remove(scene.children[i])
+	// 			}
+	// 		}
+	// 	}
+	// 	clickables.push(leftArrow)
+	// 	leftArrow.onClick = function()
+	// 	{
+	// 	}
+	// }
+
+	{
+		var orbitControls = {}
+		var previousIntersection = mouse.rayIntersectionWithZPlane(0)
+		objectsToBeUpdated.push(orbitControls)
+		orbitControls.update = function()
+		{
+			if(mouse.lastClickedObject === null && mouse.clicking)
+			{
+				var newIntersection = mouse.rayIntersectionWithZPlane(0)
+
+				if( previousIntersection !== null )
+				{
+					var displacement = newIntersection.clone().sub(previousIntersection)
+					if( Math.abs( displacement.x ) > Math.abs( displacement.y ) )
+					{
+						camera.rotation.y += displacement.x * 0.3;
+						camera.rotation.y = clamp(camera.rotation.y,-0.16,0.16)
+					}
+				}
+				else
+				{
+					previousIntersection = new THREE.Vector3();
+				}
+
+				previousIntersection.copy(newIntersection)
+			}
+			else
+			{
+				previousIntersection = null;
+			}
+		}
 	}
 
 	// {
@@ -117,65 +173,10 @@ function initPacking()
 	// 	scene.add(resetButton)
 	// }
 
-	{
-		var rotateButton = makeTextSign( "Rotate" )
-		rotateButton.geometry = new THREE.OriginCorneredPlaneBufferGeometry(0.05,0.05)
-		rotateButton.position.copy(packCounter.position)
-		rotateButton.position.x *= -1
-		rotateButton.position.x -= 0.05 * rotateButton.scale.x
-		rotateButton.beenClicked = false
-		scene.add(rotateButton)
-
-		objectsToBeRotated = []
-		var rotationQueued = 0;
-
-		clickables.push(rotateButton)
-		rotateButton.onClick = function()
-		{
-			rotationQueued += TAU / 3
-			this.beenClicked = true
-		}
-		objectsToBeUpdated.push(rotateButton)
-		rotateButton.update = function()
-		{
-			if(rotationQueued > 0)
-			{
-				var rotationAmount = 0.1
-				if( rotationQueued < rotationAmount )
-				{
-					rotationAmount = rotationQueued
-				}
-				rotationQueued -= rotationAmount
-
-				var cuboidRotationAxis = new THREE.Vector3(1,1,1).normalize()
-				var m = new THREE.Matrix4().makeRotationAxis(cuboidRotationAxis, -rotationAmount)
-				for(var i = 0; i < objectsToBeRotated.length; i++)
-				{
-					objectsToBeRotated[i].geometry.applyMatrix(m)
-					// objectsToBeRotated[i].rotateOnAxis( cuboidRotationAxis, -rotationAmount )
-					//and compute bounding box? ;_;
-				}
-			}
-
-			if( !this.beenClicked )
-			{
-				var glowColor = 0.7 + 0.3 * (Math.sin(frameCount * 0.1)+1)/2
-				this.material.color.setRGB(1,glowColor,1)
-			}
-			else
-			{
-				this.material.color.setRGB(1,1,1)
-			}
-		}
-	}
-
-	initMultipleChoice()
-	// initManualPacking(packCounter)
+	// initManualPacking(packCounter,true)
 	// initResizingRectangle(packCounter)
+	initMultipleChoice()
 	return
-
-	// initCircleInRectanglePacking()
-	// initCircleOnSpherePacking()
 
 	{
 		var applicationButton = makeTextSign( "Different object" )
@@ -246,39 +247,110 @@ function initPacking()
 
 function initMultipleChoice()
 {
-	var clickOnTheNumberOfThese = makeTextSign("Click on one of these:")
-	clickOnTheNumberOfThese.geometry = new THREE.OriginCorneredPlaneBufferGeometry(1,1)
-	clickOnTheNumberOfThese.scale.multiplyScalar(0.05)
-	clickOnTheNumberOfThese.position.x -= clickOnTheNumberOfThese.scale.x
-	clickOnTheNumberOfThese.position.y = 0.5
+	// var adviceSign = makeTextSign("Click on one of these:")
+	// adviceSign.position.y = -0.43
+	// adviceSign.material.color.setRGB(1,1,0)
+	// scene.add(adviceSign)
 
 	var countdownTilNext = Infinity;
-
-	//you want to show rulers next to both the resizing cuboids
-	//and have duplicates of the little one fill up the big. After rotating!
-
 	var correctAnswer = null
-
-	var primeNumbers = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,51]
-
-	// var correctSign = makeTextSign("Correct!")
-	// correctSign.material.color.setRGB(0,1,0)
-	// var incorrectSign = makeTextSign("Incorrect!")
-	// incorrectSign.material.color.setRGB(1,0,0)
-	// var signs = [correctSign,incorrectSign]
-	// for(var i = 0; i < signs.length; i++)
-	// {
-	// 	signs[i].visible = false
-	// 	signs[i].scale.multiplyScalar( 4 )
-	// 	scene.add( signs[i] )
-	// }
 
 	var answers = []
 	setUpQuestion = function()
 	{
-		var correctValue = 100
+		var dimensionsInCuboids = new THREE.Vector3(3,3,3)
+		// for(var i = 0; i < 3; i++)
+		// {
+		// 	dimensionsInCuboids.setComponent(i, Math.max(2,(Math.floor( Math.random() * maxDimensions[i] )) ) )
+		// }
 
-		var numPresentedAnswers = 9; //also the minimum correct answer
+		var smallunDimensions = new THREE.Vector3()
+		var maxDimensions = [4,4,4]
+		for(var i = 0; i < 3; i++)
+		{
+			smallunDimensions.setComponent(i,0.1 * (Math.floor( Math.random() * 3)+1))
+		}
+		var smallunPosition = new THREE.Vector3(-0.5,0,0)
+		var smallun = ResizingCuboid(smallunDimensions,smallunPosition,true,false,false)
+
+		var biggunDimensions = smallunDimensions.clone().multiply(dimensionsInCuboids).multiplyScalar(1.01)
+		var biggun = ResizingCuboid(biggunDimensions,new THREE.Vector3(0.25,0,0),true,false,true,dimensionsInCuboids)
+		for(var i = 0; i < biggun.cuboidsInside.length; i++)
+		{
+			biggun.cuboidsInside[i].place(smallunDimensions)
+			// biggun.cuboidsInside[i].visible = false
+		}
+
+		var movementSegment = 0;
+		var standIn = {}
+		var numSegments = dimensionsInCuboids.x + (dimensionsInCuboids.y-1) + (dimensionsInCuboids.z-1)
+		var cuboidsMovingInSegments = Array(Math.round(numSegments))
+		for(var i = 0 ; i < numSegments; i++)
+		{
+			cuboidsMovingInSegments[i] = []
+		}
+
+		var lowestUnallocatedCuboidIndex = 0
+		var segmentIndex = 0;
+		for(segmentIndex; segmentIndex < dimensionsInCuboids.x; segmentIndex++)
+		{
+			cuboidsMovingInSegments[segmentIndex].push(biggun.cuboidsInside[lowestUnallocatedCuboidIndex])
+			lowestUnallocatedCuboidIndex++
+		}
+
+		for(segmentIndex; segmentIndex < dimensionsInCuboids.x + dimensionsInCuboids.y - 1; segmentIndex++)
+		{
+			for(var j = 0; j < dimensionsInCuboids.x; j++)
+			{
+				console.log("uo")
+				cuboidsMovingInSegments[segmentIndex].push(biggun.cuboidsInside[lowestUnallocatedCuboidIndex])
+				lowestUnallocatedCuboidIndex++
+			}
+		}
+
+		for(segmentIndex; segmentIndex < cuboidsMovingInSegments.length; segmentIndex++)
+		{
+			for(var i = 0; i < dimensionsInCuboids.x; i++)
+			{
+				for(var j = 0; j < dimensionsInCuboids.y; j++)
+				{
+					cuboidsMovingInSegments[segmentIndex].push(biggun.cuboidsInside[lowestUnallocatedCuboidIndex])
+					lowestUnallocatedCuboidIndex++
+				}
+			}
+		}
+		
+		console.log(cuboidsMovingInSegments)
+		objectsToBeUpdated.push(standIn)
+		standIn.update = function()
+		{
+			movementSegment += frameDelta
+			movementSegment = clamp(movementSegment,0,cuboidsMovingInSegments.length-1)
+			var currentSegment = cuboidsMovingInSegments[Math.floor(movementSegment)]
+			for(var i = 0; i < biggun.cuboidsInside.length; i++)
+			{
+				var cuboidInside = biggun.cuboidsInside[i]
+				if( currentSegment.indexOf( cuboidInside ) !== -1)
+				{
+					cuboidInside.position.lerp(cuboidInside.eventualPosition,0.1 )
+				}
+			}
+		}
+
+		for(var i = 0; i < biggun.cuboidsInside.length; i++)
+		{
+			var cuboidInside = biggun.cuboidsInside[i];
+			cuboidInside.visible = true
+
+			cuboidInside.eventualPosition = cuboidInside.position.clone()
+
+			cuboidInside.position.copy(smallunPosition)
+			cuboidInside.position.addScaledVector(smallunDimensions,-0.5)
+		}
+		
+		var correctValue = dimensionsInCuboids.x * dimensionsInCuboids.y * dimensionsInCuboids.z
+
+		var numPresentedAnswers = 8; //the minimum correct answer!
 		var whereCorrectValueIsInAnswers = Math.floor( Math.random() * numPresentedAnswers )
 		var lowestAnswerToPresent = correctValue - whereCorrectValueIsInAnswers;
 		for(var i = 0; i < numPresentedAnswers; i++ )
@@ -301,11 +373,29 @@ function initMultipleChoice()
 				{
 					this.material.color.setRGB(1,0,0)
 				}
+				else
+				{
+					correctSign.material.opacity = 1
+				}
 				countdownTilNext = 2.3
+				// scene.remove(adviceSign)
+
+				for(var i = 0; i < biggun.cuboidsInside.length; i++)
+				{
+					biggun.cuboidsInside[i].visible = checkBoxMeshContainment(biggun,biggun.cuboidsInside[i])
+				}
 			}
 		}
 	}
 	setUpQuestion()
+
+	var correctSign = makeTextSign("Correct!")
+	correctSign.material.color.setRGB(0,1,0)
+	correctSign.scale.multiplyScalar(3)
+	correctSign.position.set(-0.5,-0.34,0)
+	correctSign.material.transparent = true
+	correctSign.material.opacity = 0.0001
+	scene.add(correctSign)
 
 	var handler = {}
 	objectsToBeUpdated.push(handler)
@@ -321,6 +411,11 @@ function initMultipleChoice()
 
 		if(countdownTilNext < 0)
 		{
+			var hackSign = new THREE.Mesh(new THREE.PlaneGeometry(0.8,0.2), new THREE.MeshBasicMaterial({map:new THREE.TextureLoader().load('data/textures/refresh.jpg'),side:THREE.DoubleSide}) )
+			hackSign.material.depthTest = false
+			hackSign.position.y = 0.4
+			scene.add(hackSign)
+
 			countdownTilNext = Infinity
 			correctAnswer.material.color.setRGB(1,1,1)
 
@@ -333,7 +428,7 @@ function initMultipleChoice()
 			}
 			answers = []
 
-			setUpQuestion()
+			// setUpQuestion()
 		}
 	}
 }
@@ -344,67 +439,82 @@ function initResizingRectangle(packCounter)
 	// camera.rotation.y += TAU / 8
 	// scene.rotation.y += TAU/8
 
+	var containingCuboid = ResizingCuboid(new THREE.Vector3(0.5,0.5,0.5),new THREE.Vector3(0.4,0,0),false,true,true)
+	var cuboidToAffectLittleOnes = ResizingCuboid(new THREE.Vector3(0.15,0.15,0.15),new THREE.Vector3(-0.5,0,0),false,true,false)
+
+	for(var i = 0; i < containingCuboid.cuboidsInside.length; i++)
+	{
+		objectsToBeUpdated.push(containingCuboid.cuboidsInside[i])
+		containingCuboid.cuboidsInside[i].update = function()
+		{
+			this.place(cuboidToAffectLittleOnes.currentDimensions)
+		}
+	}
+
 	packCounter.update = function()
 	{
 		var score = 0;
-		for(var i = 0; i < cuboidsInside.length; i++)
+		for(var i = 0; i < containingCuboid.cuboidsInside.length; i++)
 		{
-			if( cuboidsInside[i].visible === true )
+			if( containingCuboid.cuboidsInside[i].visible === true )
 			{
 				score++
 			}
 		}
 		packCounter.updateText(packCounter.stringPrecedingScore + score.toString())
 	}
-
-	var containingCuboid = ResizingCuboid()
-	var ccXPos = 0.5
-	containingCuboid.geometry.applyMatrix(new THREE.Matrix4().makeTranslation(ccXPos,0,0))
-
-	var cuboidToAffectLittleOnes = ResizingCuboid()
-	cuboidToAffectLittleOnes.geometry.applyMatrix(new THREE.Matrix4().setPosition(new THREE.Vector3(-0.5,0,0) ).scale(new THREE.Vector3(0.3,0.3,0.3)))
-
-	var dimensionsInCuboids = new THREE.Vector3(10,10,10)
-	var cuboidsInside = Array(Math.round(dimensionsInCuboids.x*dimensionsInCuboids.y*dimensionsInCuboids.z) );
-	function CuboidInside(i,j,k)
-	{
-		var index = k+j*dimensionsInCuboids.z+i*dimensionsInCuboids.z*dimensionsInCuboids.y;
-		cuboidsInside[index] = new THREE.Mesh(placeholderGeo,new THREE.MeshPhongMaterial({color:new THREE.Color(Math.random(),Math.random(),Math.random())}))
-		scene.add(cuboidsInside[index])
-
-		objectsToBeUpdated.push(cuboidsInside[index])
-		cuboidsInside[index].update = function()
-		{
-			this.visible = checkBoxMeshContainment(containingCuboid,this)
-
-			this.scale.copy(cuboidToAffectLittleOnes.currentDimensions)
-
-			this.position.set(i,j,k)
-			this.position.addScaledVector(dimensionsInCuboids,-0.5)
-			this.position.multiply(cuboidToAffectLittleOnes.currentDimensions)
-			this.position.x += ccXPos
-		}
-	}
-
-	var placeholderGeo = new THREE.BoxBufferGeometry(1,1,1).applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0.5,0.5))
-	placeholderGeo.computeBoundingBox()
-	for(var i = 0; i < dimensionsInCuboids.x; i++) {
-	for(var j = 0; j < dimensionsInCuboids.y; j++) {
-	for(var k = 0; k < dimensionsInCuboids.z; k++) {
-		CuboidInside(i,j,k)
-	}
-	}
-	}
 }
 
-function ResizingCuboid()
+function measuringStick(sideLength)
 {
-	var cuboidInitialDimension = 0.5
+	var markerSpacing = 0.1
+	var numMarkers = Math.max(sideLength / markerSpacing + 1,3)
+	console.log(sideLength,numMarkers)
+	var markerThickness = 0.01
+	var markerMaterial = new THREE.MeshBasicMaterial({color:0x0000FF})
+	var lengthMarker = new THREE.Mesh(
+		new THREE.CylinderBufferGeometryUncentered(markerThickness/2,numMarkers * markerSpacing * 1.03),
+		markerMaterial)
+	var cmMarkers = Array(Math.floor(numMarkers) )
+	var markerLength = markerThickness*4
+	var cmMarkerGeometry = new THREE.CylinderBufferGeometryUncentered(markerThickness/2,markerLength).applyMatrix(new THREE.Matrix4().makeRotationZ(-TAU/4))
+	for( var i = 0; i < cmMarkers.length; i++ )
+	{
+		cmMarkers[i] = new THREE.Mesh(
+			cmMarkerGeometry,
+			markerMaterial)
+		cmMarkers[i].position.y = i * markerSpacing
+		cmMarkers[i].position.x = lengthMarker.position.x - markerLength
+
+		// cmMarkers[i].numberSign = makeTextSign( i.toString() )
+		// cmMarkers[i].numberSign.position.x = -markerLength/2
+		// cmMarkers[i].add( cmMarkers[i].numberSign ) //sure you need these?
+
+		lengthMarker.add( cmMarkers[i] )
+	}
+
+	lengthMarker.updateCmMarkers = function()
+	{
+		// for(var i = 0; i < cmMarkers.length; i++)
+		// {
+		// 	cmMarkers[i].numberSign.rotation.x = -lengthMarker.rotation.x
+		// 	cmMarkers[i].numberSign.rotation.y = -lengthMarker.rotation.y
+		// 	cmMarkers[i].numberSign.rotation.z = -lengthMarker.rotation.z
+		// }
+	}
+
+	return lengthMarker
+}
+
+function ResizingCuboid(dimensions,position,measurementMarkers,modifiable,filled,dimensionsInCuboids)
+{
+	var cuboidInitialDimension = 1.0
 	var binColor = new THREE.Color(0.8,0.8,0.8);
 	var transparentMaterial = new THREE.MeshPhongMaterial({transparent:true, opacity: 0.3, color:binColor})
 	var cuboid = new THREE.Mesh(new THREE.CubeGeometry(cuboidInitialDimension,cuboidInitialDimension,cuboidInitialDimension), transparentMaterial)
 	cuboid.geometry.computeBoundingBox()
 	cuboid.currentDimensions = new THREE.Vector3()
+	scene.add(cuboid)
 
 	var vertexGeometry = new THREE.SphereBufferGeometry(0.015)
 	var vertexMaterial = new THREE.MeshPhongMaterial({color:0xFFD700})
@@ -461,93 +571,160 @@ function ResizingCuboid()
 			cuboid.edges[i].scale.y = cuboid.edges[i].start.distanceTo(cuboid.edges[i].end)
 		}
 	}
-	cuboid.updateVerticesAndEdges()
-	scene.add(cuboid)
 
 	var grabbedVertex = null
 	var grabbingPlaneWorld = null
 	var mouseIntersectionWithFacePlane = null
 
-	objectsToBeUpdated.push(cuboid)
-	cuboid.update = function()
+	if(modifiable)
 	{
-		//Can't use onclick because intersectObject doesn't always work whereas this does
-		if(mouse.clicking && !mouse.oldClicking)
+		objectsToBeUpdated.push(cuboid)
+		cuboid.update = function()
 		{
-			var localRay = mouse.rayCaster.ray.clone()
-			localRay.direction.add(localRay.origin)
-
-			cuboid.worldToLocal(localRay.origin)
-			cuboid.worldToLocal(localRay.direction)
-
-			localRay.direction.sub(localRay.origin)
-			localRay.direction.normalize()
-
-			var intersectionPoint = localRay.intersectBox( cuboid.geometry.boundingBox )
-			if( intersectionPoint !== null )
+			//Can't use onclick because intersectObject doesn't always work whereas this does
+			if(mouse.clicking && !mouse.oldClicking)
 			{
-				grabbedVertex = cuboid.geometry.vertices[ getClosestPointToPoint(intersectionPoint,cuboid.geometry.vertices) ]
-				mouseIntersectionWithFacePlane = intersectionPoint
+				var localRay = mouse.rayCaster.ray.clone()
+				localRay.direction.add(localRay.origin)
 
-				var closestPlaneDist = Infinity
-				for(var i = 0; i < cuboid.geometry.faces.length; i++)
+				cuboid.worldToLocal(localRay.origin)
+				cuboid.worldToLocal(localRay.direction)
+
+				localRay.direction.sub(localRay.origin)
+				localRay.direction.normalize()
+
+				var intersectionPoint = localRay.intersectBox( cuboid.geometry.boundingBox )
+				if( intersectionPoint !== null )
 				{
-					var face = cuboid.geometry.faces[i]
-					var worldGrabbedFaceVertices = [cuboid.geometry.vertices[face.getCorner(0)].clone(),cuboid.geometry.vertices[face.getCorner(1)].clone(),cuboid.geometry.vertices[face.getCorner(2)].clone()]
-					for(var j = 0; j < 3; j++)
-					{
-						cuboid.localToWorld( worldGrabbedFaceVertices[j] )
-					}
-					var facePlane = new THREE.Plane().setFromCoplanarPoints(worldGrabbedFaceVertices[0],worldGrabbedFaceVertices[1],worldGrabbedFaceVertices[2])
-					if( Math.abs( facePlane.distanceToPoint(intersectionPoint) ) < Math.abs( closestPlaneDist ) )
-					{
-						grabbingPlaneWorld = facePlane
-						closestPlaneDist = facePlane.distanceToPoint(intersectionPoint)
-					}
-				}
-			}
-		}
+					mouse.lastClickedObject = this
 
-		//the distance that the mouseray intersection with face has moved = distance our vertex
-		if( grabbedVertex )
-		{
-			var newMouseIntersectionWithFacePlane = mouse.rayCaster.ray.intersectPlane( grabbingPlaneWorld )
-			if( newMouseIntersectionWithFacePlane === null)
-			{
-				//hack, projective plane alert (quite interesting)
-				return
-			}
-			var displacement = newMouseIntersectionWithFacePlane.clone().sub(mouseIntersectionWithFacePlane)
+					grabbedVertex = cuboid.geometry.vertices[ getClosestPointToPoint(intersectionPoint,cuboid.geometry.vertices) ]
+					mouseIntersectionWithFacePlane = intersectionPoint
 
-			var oldGrabbedVertex = grabbedVertex.clone()
-			grabbedVertex.add(displacement)
-			for(var d = 0; d < 3; d++)
-			{
-				for(var i = 0; i < cuboid.geometry.vertices.length; i++)
-				{
-					if(cuboid.geometry.vertices[i].getComponent(d) === oldGrabbedVertex.getComponent(d) )
+					var closestPlaneDist = Infinity
+					for(var i = 0; i < cuboid.geometry.faces.length; i++)
 					{
-						cuboid.geometry.vertices[i].setComponent(d,grabbedVertex.getComponent(d))
+						var face = cuboid.geometry.faces[i]
+						var worldGrabbedFaceVertices = [cuboid.geometry.vertices[face.getCorner(0)].clone(),cuboid.geometry.vertices[face.getCorner(1)].clone(),cuboid.geometry.vertices[face.getCorner(2)].clone()]
+						for(var j = 0; j < 3; j++)
+						{
+							cuboid.localToWorld( worldGrabbedFaceVertices[j] )
+						}
+						var facePlane = new THREE.Plane().setFromCoplanarPoints(worldGrabbedFaceVertices[0],worldGrabbedFaceVertices[1],worldGrabbedFaceVertices[2])
+						if( Math.abs( facePlane.distanceToPoint(intersectionPoint) ) < Math.abs( closestPlaneDist ) )
+						{
+							grabbingPlaneWorld = facePlane
+							closestPlaneDist = facePlane.distanceToPoint(intersectionPoint)
+						}
 					}
 				}
 			}
 
-			cuboid.geometry.verticesNeedUpdate = true
-			cuboid.geometry.computeBoundingBox()
-			mouseIntersectionWithFacePlane.copy(newMouseIntersectionWithFacePlane)
-
-			if(!mouse.clicking)
+			//the distance that the mouseray intersection with face has moved = distance our vertex
+			if( grabbedVertex )
 			{
-				grabbedVertex = null
-				grabbingPlaneWorld = null
-				mouseIntersectionWithFacePlane = null
-			}
-		}
-		cuboid.updateVerticesAndEdges()
-		cuboid.updateMatrixWorld()
+				var newMouseIntersectionWithFacePlane = mouse.rayCaster.ray.intersectPlane( grabbingPlaneWorld )
+				if( newMouseIntersectionWithFacePlane === null)
+				{
+					//hack, projective plane alert (quite interesting)
+					return
+				}
+				var displacement = newMouseIntersectionWithFacePlane.clone().sub(mouseIntersectionWithFacePlane)
 
-		cuboid.geometry.boundingBox.getSize(cuboid.currentDimensions)
+				var oldGrabbedVertex = grabbedVertex.clone()
+				grabbedVertex.add(displacement)
+				for(var d = 0; d < 3; d++)
+				{
+					for(var i = 0; i < cuboid.geometry.vertices.length; i++)
+					{
+						if(cuboid.geometry.vertices[i].getComponent(d) === oldGrabbedVertex.getComponent(d) )
+						{
+							cuboid.geometry.vertices[i].setComponent(d,grabbedVertex.getComponent(d))
+						}
+					}
+				}
+
+				cuboid.geometry.verticesNeedUpdate = true
+				cuboid.geometry.computeBoundingBox()
+				mouseIntersectionWithFacePlane.copy(newMouseIntersectionWithFacePlane)
+
+				if(!mouse.clicking)
+				{
+					grabbedVertex = null
+					grabbingPlaneWorld = null
+					mouseIntersectionWithFacePlane = null
+				}
+			}
+			cuboid.updateVerticesAndEdges()
+			cuboid.updateMatrixWorld()
+
+			cuboid.geometry.boundingBox.getSize(cuboid.currentDimensions)
+		}
 	}
+
+	cuboid.geometry.applyMatrix(new THREE.Matrix4().scale(dimensions))
+
+	if(filled)
+	{
+		if(dimensionsInCuboids === undefined)
+		{
+			dimensionsInCuboids = new THREE.Vector3(9,9,9)
+		}
+		var cuboidsInside = Array(Math.round(dimensionsInCuboids.x*dimensionsInCuboids.y*dimensionsInCuboids.z) );
+		cuboid.cuboidsInside = cuboidsInside
+		var placeholderGeo = new THREE.BoxBufferGeometry(1,1,1).applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0.5,0.5))
+		placeholderGeo.computeBoundingBox()
+		function CuboidInside(i,j,k)
+		{
+			var index = k+j*dimensionsInCuboids.z+i*dimensionsInCuboids.z*dimensionsInCuboids.y;
+			cuboidsInside[index] = new THREE.Mesh(placeholderGeo,new THREE.MeshPhongMaterial({color:new THREE.Color(Math.random(),Math.random(),Math.random())}))
+			cuboidsInside[index].i = i; cuboidsInside[index].j = j; cuboidsInside[index].k = k;
+			cuboidsInside[index].place = function(dimensions)
+			{
+				this.scale.copy(dimensions)
+
+				this.position.set(this.i,this.j,this.k)
+				this.position.multiply(dimensions)
+				this.position.add(cuboid.geometry.vertices[6])
+
+				this.visible = checkBoxMeshContainment(cuboid,this)
+			}
+			scene.add( cuboidsInside[index] )
+		}
+		
+		for(var i = 0; i < dimensionsInCuboids.x; i++) {
+		for(var j = 0; j < dimensionsInCuboids.y; j++) {
+		for(var k = 0; k < dimensionsInCuboids.z; k++) {
+			CuboidInside(i,j,k)
+		}
+		}
+		}
+	}
+
+	cuboid.geometry.applyMatrix(new THREE.Matrix4().setPosition(position))
+	if(measurementMarkers)
+	{
+		for(var i = 0; i < 3; i++)
+		{
+			var lengthMarker = measuringStick( dimensions.getComponent(i) ) 
+			scene.add(lengthMarker)
+			if(position.x > 0)
+			{
+				lengthMarker.position.copy( cuboid.geometry.vertices[7] )
+				if(i===0) {lengthMarker.rotation.z -= TAU*3/4;lengthMarker.rotation.y -= TAU/2;}
+				if(i===2) lengthMarker.rotation.x -= TAU/4
+			}
+			else
+			{
+				lengthMarker.position.copy( cuboid.geometry.vertices[2] )
+				if(i===0) {lengthMarker.rotation.z += TAU/4;}
+				if(i===1) {lengthMarker.rotation.y += TAU/2;}
+				if(i===2) {lengthMarker.rotation.y += TAU/2;lengthMarker.rotation.x -= TAU/4;}
+			}
+			lengthMarker.updateCmMarkers()
+		}
+	}
+	cuboid.updateVerticesAndEdges()
 
 	return cuboid
 }
@@ -611,8 +788,62 @@ function initCircleOnSpherePacking()
 	}
 }
 
-function initManualPacking(packCounter)
+var objectsToBeRotated = []
+function initManualPacking(packCounter,haveRotateButton)
 {
+	if(haveRotateButton)
+	{
+		var rotateButton = makeTextSign( "Rotate" )
+		rotateButton.geometry = new THREE.OriginCorneredPlaneBufferGeometry(0.05,0.05)
+		rotateButton.position.copy(packCounter.position)
+		rotateButton.position.x *= -1
+		rotateButton.position.x -= 0.05 * rotateButton.scale.x
+		rotateButton.beenClicked = false
+		camera.add(rotateButton)
+		rotateButton.position.z = -camera.position.z
+
+		var rotationQueued = 0;
+
+		clickables.push(rotateButton)
+		rotateButton.onClick = function()
+		{
+			rotationQueued += TAU / 3
+			this.beenClicked = true
+		}
+		objectsToBeUpdated.push(rotateButton)
+		rotateButton.update = function()
+		{
+			if(rotationQueued > 0)
+			{
+				var rotationAmount = 0.1
+				if( rotationQueued < rotationAmount )
+				{
+					rotationAmount = rotationQueued
+				}
+				rotationQueued -= rotationAmount
+
+				var cuboidRotationAxis = new THREE.Vector3(1,1,1).normalize()
+				var m = new THREE.Matrix4().makeRotationAxis(cuboidRotationAxis, -rotationAmount)
+				for(var i = 0; i < objectsToBeRotated.length; i++)
+				{
+					objectsToBeRotated[i].geometry.applyMatrix(m)
+					// objectsToBeRotated[i].rotateOnAxis( cuboidRotationAxis, -rotationAmount )
+					//and compute bounding box? ;_;
+				}
+			}
+
+			if( !this.beenClicked )
+			{
+				var glowColor = 0.7 + 0.3 * (Math.sin(frameCount * 0.1)+1)/2
+				this.material.color.setRGB(1,glowColor,1)
+			}
+			else
+			{
+				this.material.color.setRGB(1,1,1)
+			}
+		}
+	}
+
 	var _scene = new THREE.Object3D();
 	scene.add(_scene)
 	_scene.position.z = stage.geometry.vertices[1].z * stage.scale.z;
@@ -621,43 +852,14 @@ function initManualPacking(packCounter)
 
 	var originalCuboidPosition = new THREE.Vector3(0,1/ (16/9),0)
 
-	var orbitControls = {}
-	var previousIntersection = mouse.rayIntersectionWithZPlane(0)
-	objectsToBeUpdated.push(orbitControls)
-	orbitControls.update = function()
+	if(haveRotateButton)
 	{
-		if(mouse.lastClickedObject === null && mouse.clicking)
-		{
-			var newIntersection = mouse.rayIntersectionWithZPlane(0)
-
-			if( previousIntersection !== null )
-			{
-				var displacement = newIntersection.clone().sub(previousIntersection)
-				if( Math.abs( displacement.x ) > Math.abs( displacement.y ) )
-				{
-					_scene.rotation.y += displacement.x * 1.3;
-					_scene.rotation.y = clamp(_scene.rotation.y,-TAU / 8-TAU/32,-TAU / 8+TAU/32)
-				}
-				// else
-				// {
-				// 	_scene.rotation.x -= displacement.y * 1.6;
-				// 	_scene.rotation.x = clamp(_scene.rotation.x,0,TAU/16)
-				// }
-			}
-			else
-			{
-				previousIntersection = new THREE.Vector3();
-			}
-
-			previousIntersection.copy(newIntersection)
-		}
-		else
-		{
-			previousIntersection = null;
-		}
+		var binDimensions = new THREE.Vector3(0.41,0.21,0.41)
 	}
-
-	var binDimensions = new THREE.Vector3(0.4,0.21,0.4)
+	else
+	{
+		var binDimensions = new THREE.Vector3(0.41,0.41,0.41)
+	}
 	var binGeometry = new THREE.BoxGeometry(binDimensions.x,binDimensions.y,binDimensions.z);
 	binGeometry.applyMatrix(new THREE.Matrix4().makeTranslation( binDimensions.x/2,binDimensions.y/2,binDimensions.z/2 ))
 	binGeometry.computeBoundingBox();
@@ -692,7 +894,14 @@ function initManualPacking(packCounter)
 
 		if( !thereIsALooseOne && !mouse.clicking )
 		{
-			var newCuboid = Cuboid(0.2,0.1,0.1)
+			if(haveRotateButton)
+			{
+				var newCuboid = Cuboid(0.2,0.1,0.1)
+			}
+			else
+			{
+				var newCuboid = Cuboid(0.1,0.1,0.1)
+			}
 			newCuboid.position.copy(originalCuboidPosition)
 		}
 
