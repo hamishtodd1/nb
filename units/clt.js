@@ -83,7 +83,7 @@ function initClt()
 	Then?
 	You can control the n - but it means you do more/less experiments
 	*/
-	
+
 	function initFinger()
 	{
 		var fingerMaterial = new THREE.MeshBasicMaterial()
