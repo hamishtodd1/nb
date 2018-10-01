@@ -2,49 +2,40 @@
 
 function initClt()
 {
+	// {
+	// 	var counter = makeTextSign("Score: 0")
+	// 	scene.add(counter)
+	// 	var numRightSoFar = 0;
+	// 	var numWrongSoFar = 0;
+	// 	counter.update = function()
+	// 	{
+	// 		var totalSoFar = (numRightSoFar + numWrongSoFar)
+	// 		var amountTheyGotThroughGuessing = Math.round(numRightSoFar / 3) //TODO
+	// 		this.updateText("Score: " + numRightSoFar.toString())
+	// 	}
+	// }
+	
+
 	// var fingerGame = initFinger()
-
-	var clickableDistributions = initClickableDistributions(true,3)
-	// makeCupGame(clickableDistributions, 7)
-
+	
+	var clickableDistributions = initClickableDistributions(false,3)
+	makeCupGame(clickableDistributions, 1)
+	
 	// var coloredBalls = initColoredBalls(3)
 	// makeCupGame(coloredBalls, 11) //11
-
-	
 }
 
 /*
-	TODO
-		Packing
-			Texture mapping
-			Rotation
-		Test on their computer (speedup? ;_;)
-		Test in the school
+	Show the numbers to say that this is what “data” is
 
 	Teacher can control scramble amount
 
-	Want to be able to hold down
-
-	You wanna click some 3D model in mimicry of the mug
-
-	peer instruction questions
-	"patient 1", "patient 2"
-	Danger zones, healthy zones
-	little pictures of hearts, one beating
-	Ok have one of that, but other things you keep to the
-
-	Show the numbers to say that this is what “data” is
-	Under the mug, you have data from people who've had lead in the walls
-	Footballer pass length (parabola)
-	medic - heartbeats heart.jpg
-	vet
-	electrical engineer - how much power a lightbulb needs? Number of megapixels of a camera?
-	Number of views a youtube video gets
-	lawyer - #cases won
-	hairdresser - #five star ratings on google maps
-	armed services - gun number of times fired before it broke (bullet)
-	police - number of crimes committed on a street
-
+	Slides
+	Finger thing (just a graph next to them)
+	Ball thing where it gets faster and faster
+	Graph thing where you try to guess
+	Graph thing where you try to get out early using
+	Final slide: values in front of mug are your "sample"
 
 	Schedule
 		Control distribution and population
@@ -55,16 +46,13 @@ function initClt()
 				Group by height
 
 		Increase the number of samples hugely while keeping the distribution the same
-			Clicking a distribution gets one sample from it (some challenge to make sure everyone knows you can get this)
+			Clicking a distribution gets one sample from it
 
 		Introduce folks to the cup interface
 			Red ball, blue ball, green ball
-			Do some where you CAN keep track of the mugs. Increase scramblecount by 1 when they get it right
-			Also introduce that you can click a distribution even when in a mug
+			Do some where you CAN keep track of the mugs. Increase scramblecount by 1 when they get it right. And ball number?
 		Click a cup loads and try to figure out which shape is being built up
-			You have the ten (need lots because otherwise chance) distributions
-			we duplicate one, it is under a cup, you have to work out which
-		Then we add in the average. They should probably be familiar with that ;_;
+		Then we add in the average
 			It's another, differently colored, ball inamongst the balls they're building up
 			Useful because it's important to see that it hones in on something = "regression to the mean"
 
@@ -118,11 +106,13 @@ function initClt()
 
 function initFinger()
 {
-	var fingerMaterial = new THREE.MeshBasicMaterial({map:new THREE.TextureLoader().load( "data/textures/finger.jpg" )})
+	var fingerMaterial = new THREE.MeshBasicMaterial()
+	// fingerMaterial.map = new THREE.TextureLoader().load( "data/textures/finger.jpg" )
 	var fingerGeometry = new THREE.OriginCorneredPlaneBufferGeometry(0.5,1)
 
 	var fingerRuler = new THREE.Mesh( fingerGeometry, fingerMaterial )
 	fingerRuler.scale.multiplyScalar(0.5)
+	fingerRuler.position.x -= 0.5
 
 	var markerThickness = 0.01
 	var lengthMarker = new THREE.Mesh(
@@ -136,22 +126,16 @@ function initFinger()
 	{
 		cmMarkers[i] = new THREE.Mesh(
 			new THREE.OriginCorneredPlaneBufferGeometry(markerLength,markerThickness),
-			new THREE.MeshBasicMaterial({color:0x0000FF, side:THREE.DoubleSide}))
+			new THREE.MeshBasicMaterial({color:0x0000FF}))
 		cmMarkers[i].position.y = i * markerSpacing
 		cmMarkers[i].position.x = lengthMarker.position.x - markerLength
+
 		var numberSign = makeTextSign( i.toString() )
 		numberSign.position.x = -markerLength/2
 		cmMarkers[i].add( numberSign )
-	}
 
-	var signLines = [ makeTextSign( "YOUR FINGER" ), makeTextSign( "IS BEING SHOWN" ) ]
-	for(var i = 0; i < 2; i++)
-	{
-		signLines[i].position.y = 0.025 - i * 0.05
-		signLines[i].material.transparent = true
-		signLines[i].material.opacity = 0
+		// console.log(cmMarkers)
 	}
-	var yourFingerIsBeingShownSign = new THREE.Group().add( signLines[0], signLines[1] )
 
 	fingerRuler.clickedPoint = null;
 	fingerRuler.update = function()
@@ -183,7 +167,6 @@ function initFinger()
 
 			scene.add( fingerRuler )
 			scene.add( lengthMarker )
-			scene.add(yourFingerIsBeingShownSign)
 
 			for( var i = 0; i < cmMarkers.length; i++ )
 			{
@@ -209,6 +192,8 @@ function initFinger()
 			this.isSetUp = false;
 		}
 	}
+
+	fingerGame.setUp()
 
 	return fingerGame
 }
@@ -252,29 +237,64 @@ function initColoredBalls(numColoredBalls)
 
 function initClickableDistributions(normalDistributionsPresent, numWeWant)
 {
-	function ClickableDistribution( samplingFunction,numControlPoints,numSamples )
+	var textureLoader = new THREE.TextureLoader()
+	var profilePictures = Array(19)
+	var profilePictureGeometry = new THREE.OriginCorneredPlaneBufferGeometry(1,1)
+	for(var i = 0; i < profilePictures.length; i++)
 	{
-		if(numControlPoints === undefined)
+		var fileName = i.toString()
+		if(i < 10)
 		{
-			numControlPoints = 11; //if you go too high the noise is bad ;_;
+			fileName = "0" + fileName
 		}
-		if(numSamples === undefined)
+		if(i < 8)
 		{
-			numSamples = 30 * numControlPoints;
+			fileName += ".png"
+		}
+		else
+		{
+			fileName += ".jpg"
 		}
 
-		var clickableDistribution = new THREE.Mesh(new THREE.PlaneGeometry(numControlPoints*0.2,0.8*numSamples), new THREE.MeshBasicMaterial({transparent:true,opacity:0.001, depthTest:false}))
+		profilePictures[i] = new THREE.Mesh(profilePictureGeometry,new THREE.MeshBasicMaterial())
+		profilePictures[i].material.color.setRGB(Math.random(),Math.random,Math.random())
+		// profilePictures[i].map = textureLoader.load( 'data/textures/rugbyPlayers/' + fileName )
+	}
+
+	var lowestUnusedProfilePicture = 0;
+
+	function ClickableDistribution( samplingFunction,numControlPoints = 11,numSamples = 30 * numControlPoints, samples )
+	{
+		//if you go too high on numControlPoints the noise is bad ;_;
+
+		var clickableDistribution = new THREE.Mesh(
+			new THREE.PlaneGeometry(numControlPoints*0.2),
+			new THREE.MeshBasicMaterial({transparent:true,opacity:0.001}))
+		clickableDistribution.geometry.vertices[2].y = 0
+		clickableDistribution.geometry.vertices[3].y = 0
 		clickables.push( clickableDistribution )
 		//going the samples route is kiiiinda cheating, but you want to give people an assurance that they'll eventually reproduce what they'll seeing
-		clickableDistribution.samples = new Float32Array(numSamples)
 		var numSamplesAvailable = numSamples;
 		clickableDistribution.samplesDone = new Array(numSamples)
 		var highestSample = -Infinity
 		var lowestSample = Infinity
 		clickableDistribution.mean = 0;
+
+		if( samples === undefined )
+		{
+			clickableDistribution.samples = new Float32Array(numSamples)
+			for(var i = 0; i < numSamples; i++)
+			{
+				clickableDistribution.samples[i] = samplingFunction()
+			}
+		}
+		else
+		{
+			clickableDistribution.samples = samples
+		}
+
 		for(var i = 0; i < numSamples; i++)
 		{
-			clickableDistribution.samples[i] = samplingFunction()
 			clickableDistribution.mean += clickableDistribution.samples[i]
 
 			clickableDistribution.samplesDone[i] = false
@@ -336,9 +356,7 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 			}
 		}
 
-		clickables.push(areaBeneath)
-		clickableDistribution.excitedness = 0
-		clickableDistribution.onClick = function()
+		clickableDistribution.vomitMember = function()
 		{
 			if(numSamplesAvailable === 0)
 			{
@@ -350,12 +368,12 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 			var sample = null;
 			for(var i = 0; i < numSamples; i++)
 			{
-				if( !clickableDistribution.samplesDone[i] )
+				if( !this.samplesDone[i] )
 				{
 					if( numUndrawnSamplesGoneThrough === undrawnSampleToDraw )
 					{
-						sample = clickableDistribution.samples[ i ]
-						clickableDistribution.samplesDone[ i ] = true
+						sample = this.samples[ i ]
+						this.samplesDone[ i ] = true
 						numSamplesAvailable--;
 						break;
 					}
@@ -374,15 +392,15 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 				}
 			}
 
-			var member = Member(placeToLand)
+			var member = Member(controlPoints[ 0 ].x, placeToLand)
 			member.scale.x = spacing * 0.9
 			memberHolder.add(member)
 
 			//TODO you want it so the highest column is sort of always nearly there
 			var scaleWithNoMembers = 3.5
-			memberHolder.scale.y = scaleWithNoMembers - (scaleWithNoMembers-1) * memberHolder.children.length / clickableDistribution.samples.length
+			memberHolder.scale.y = scaleWithNoMembers - (scaleWithNoMembers-1) * Math.sqrt(memberHolder.children.length / this.samples.length)
 
-			clickableDistribution.excitedness = 1;
+			this.excitedness = 1;
 
 			if(normalDistributionsPresent)
 			{
@@ -390,16 +408,29 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 			}
 		}
 
+		clickableDistribution.excitedness = 0
+
 		clickableDistribution.add( areaBeneath )
 		var curveOnTop = new THREE.Mesh( new THREE.TubeBufferGeometry( new THREE.CatmullRomCurve3( controlPoints, false, "centripetal" ), controlPoints.length * 8, 0.01 ) )
 		// areaBeneath.add( curveOnTop )
 		clickableDistribution.width = controlPoints[numControlPoints-1].x * 2
 		clickableDistribution.height = highestPeak
+		clickableDistribution.geometry.vertices[0].y = highestPeak
+		clickableDistribution.geometry.vertices[1].y = highestPeak
 		scene.add(clickableDistribution)
 
 		objectsToBeUpdated.push(clickableDistribution)
 		clickableDistribution.update = function()
 		{
+			if(mouse.clicking && mouse.lastClickedObject === this )
+			{
+				// if( !mouse.oldClicking )
+				if( mouse.oldClicking || frameCount % 11 === 0 ) //always get the first
+				{
+					this.vomitMember()
+				}
+			}
+
 			clickableDistribution.excitedness -= frameDelta * 1.5
 			if(clickableDistribution.excitedness < 0)
 			{
@@ -420,10 +451,33 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 			clickableDistribution.add(correspondingNormalDistribution)
 		}
 
+		clickableDistribution.wandClone = function()
+		{
+			var clone = ClickableDistribution(samplingFunction, numControlPoints,numSamples,this.samples)
+			clone.scale.copy(this.scale)
+			// for(var i = clone.children.length; i < this.children.length; i++)
+			// {
+			// 	clone.add(this.children[i].clone())
+			// }
+			return clone
+		}
+
+		clickableDistribution.scale.set(1/clickableDistribution.width,0.5/clickableDistribution.height,1)
+		
+		clickableDistribution.profilePicture = profilePictures[lowestUnusedProfilePicture]
+		lowestUnusedProfilePicture++
+
+		clickableDistribution.add(clickableDistribution.profilePicture)
+		// profilePictures[lowestUnusedProfilePicture].scale.set( ,clickableDistribution.height/clickableDistribution.scale.y,1)
+		clickableDistribution.profilePicture.scale.y = clickableDistribution.height
+		clickableDistribution.profilePicture.scale.x = clickableDistribution.height / clickableDistribution.scale.x * clickableDistribution.scale.y
+		clickableDistribution.profilePicture.position.z = -0.001
+		clickableDistribution.profilePicture.position.x = -clickableDistribution.width/2 - clickableDistribution.profilePicture.scale.x
+
 		return clickableDistribution;
 	}
 
-	function Member(placeToLand)
+	function Member(initialX, placeToLand)
 	{
 		/*
 			Little shockwave? Little bounce?
@@ -441,7 +495,7 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 		member.update = function()
 		{
 			this.lifetime += frameDelta
-			this.position.x = this.lifetime / arcDuration * this.placeToLand.x
+			this.position.x = initialX + this.lifetime / arcDuration * ( this.placeToLand.x - initialX )
 			this.position.y = this.placeToLand.y + sq( arcDuration/2 ) * 20
 			this.position.y -= sq(this.lifetime - arcDuration/2) * 20
 
@@ -495,345 +549,32 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 	}
 
 	var oneHumpedDistribution = HumpedClickableDistribution([1,1,1,1,4.5,1])
-	oneHumpedDistribution.scale.set(1/oneHumpedDistribution.width,0.5/oneHumpedDistribution.height,1)
-	oneHumpedDistribution.position.y = -0.5
 
 	if( numWeWant !== 1 )
 	{
 		var twoHumpedDistribution = HumpedClickableDistribution([1,2.75,1,1,4.5,1])
-		twoHumpedDistribution.scale.set(1/twoHumpedDistribution.width,0.5/twoHumpedDistribution.height,1)
-
 		var threeHumpedDistribution = HumpedClickableDistribution([4,1,4,1,1,4])
-		threeHumpedDistribution.scale.set(1/threeHumpedDistribution.width,0.5/threeHumpedDistribution.height,1)
-		threeHumpedDistribution.position.y = 0.5
 
 		oneHumpedDistribution.scale.multiplyScalar(0.2)
 		twoHumpedDistribution.scale.multiplyScalar(0.2)
 		threeHumpedDistribution.scale.multiplyScalar(0.2)
 
-		return [oneHumpedDistribution,twoHumpedDistribution,threeHumpedDistribution]
+		var clickableDistributions = [oneHumpedDistribution,twoHumpedDistribution,threeHumpedDistribution]
 	}
 	else
-		return [oneHumpedDistribution]
+	{
+		var clickableDistributions = [oneHumpedDistribution]
+	}
+
+	for(var i = 0; i < clickableDistributions.length; i++)
+	{
+		clickableDistributions[i].position.y = 0.3 * (i-(clickableDistributions.length-1)/2)
+	}
+
+	return clickableDistributions
 }
 
-function makeCupGame( objectsToHide, defaultScrambleAmount )
-{
-	//need to bring signs back from the repo
-	for(var i = 0; i < objectsToHide.length; i++)
-	{
-		objectsToHide[i].onClick = function()
-		{
-			if( this === duplicate.originalObject )
-			{
-				correctSign.material.opacity = 1
-			}
-			else
-			{
-				incorrectSign.material.opacity = 1
-			}
-			duplicate.remove(duplicate.children[0])
-		}
-	}
 
-	var texture = new THREE.TextureLoader().load( "data/textures/wand.png" )
-	var wand = new THREE.Mesh(new THREE.PlaneGeometry(1/8,1), new THREE.MeshPhongMaterial({map:texture, transparent:true, depthTest:false}))
-	wand.geometry.vertices[2].y = 0
-	wand.geometry.vertices[3].y = 0
-	wand.scale.setScalar(0.5)
-	var duplicatingPosition = null
-	scene.add(wand)
-
-	wand.duplicateObjectAndCoveringCup = function(object)
-	{
-		this.objectToDuplicate = object
-		duplicatingPosition = this.objectToDuplicate.position.clone()
-		duplicatingPosition.x += 0.2
-		duplicatingPosition.y -= 0.2
-
-		duplicationProgress = 0;
-		progressSpeed = frameDelta * 2.9
-	}
-
-	wand.objectToDuplicate = null
-	var duplicationProgress = 0;
-	var progressSpeed = 0;
-	wand.unusedPosition = new THREE.Vector3(1.1,0,0)
-	wand.position.copy(wand.unusedPosition)
-	wand.update = function()
-	{
-		var pulse = sq( Math.sin(frameCount * 0.15) )
-		this.material.emissive.setRGB(pulse,pulse,0)
-
-		if(this.objectToDuplicate !== null)
-		{
-			duplicationProgress += progressSpeed
-
-			if(duplicationProgress < 1)
-			{
-				this.position.lerpVectors(wand.unusedPosition,duplicatingPosition,duplicationProgress)
-			}
-			else if(duplicationProgress < 2)
-			{
-				this.position.copy(duplicatingPosition)
-				this.rotation.z = (duplicationProgress-1) * TAU/12
-			}
-			else if(duplicationProgress < 3)
-			{
-				var placeToSitAndBeInspected = new THREE.Vector3(-0.7,0,0)
-
-				duplicate = this.objectToDuplicate.clone()
-				duplicate.update = null
-				duplicate.originalObject = this.objectToDuplicate
-				scene.add(duplicate)
-				duplicate.movementProgress = 0;
-
-				duplicate.update = function()
-				{
-					this.movementProgress += frameDelta
-					if( this.movementProgress > 1 )
-					{
-						this.movementProgress = 1;
-					}
-					this.position.lerpVectors(wand.objectToDuplicate.position, placeToSitAndBeInspected,this.movementProgress)
-				}
-				// duplicate.onClick = this.objectToDuplicate.onClick
-				// clickables.push(duplicate)
-
-				objectsToBeUpdated.push(duplicate)
-
-				progressSpeed *= -1	
-			}
-		}
-	}
-	objectsToBeUpdated.push(wand)
-
-	var cupRadius = 0.12
-	var cupInnerRadius = cupRadius * 0.86
-	var cupHeight = 2 * cupRadius
-	var cupRoundedness = 4;
-	var radialSegments = 16;
-	var cupGeometry = new THREE.CylinderGeometry( cupRadius, cupRadius, cupHeight, radialSegments)
-
-	var indexOfVertexAtBottom = cupGeometry.vertices.length-1; //2?
-	for(var i = 0; i < cupGeometry.faces.length; i++)
-	{
-		for(var j = 0; j < 3; j++)
-		{
-			if( cupGeometry.faces[i].getCorner(j) === indexOfVertexAtBottom )
-			{
-				cupGeometry.faces[i].set(indexOfVertexAtBottom,indexOfVertexAtBottom,indexOfVertexAtBottom)
-				break;
-			}
-		}
-	}
-	cupGeometry.merge( new THREE.CylinderGeometry( cupInnerRadius, cupInnerRadius, cupHeight, radialSegments,1,true) )
-	cupGeometry.merge( new THREE.RingGeometry( cupInnerRadius, cupRadius, radialSegments).applyMatrix(new THREE.Matrix4().makeRotationX(TAU/4).setPosition(new THREE.Vector3(0,-cupHeight/2,0))) )
-	var cupMaterial = new THREE.MeshLambertMaterial({color:0xC0C0FF, side:THREE.DoubleSide})
-
-	var handleThickness = cupRadius / 6
-	var handleGeometry = new THREE.TorusGeometry(cupRadius/1.5,handleThickness,16,16,TAU/2)
-	handleGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-TAU/4))
-	handleGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(cupRadius-handleThickness,0,0))
-	cupGeometry.merge(handleGeometry)
-
-	function Cup()
-	{
-		var cup = new THREE.Mesh(cupGeometry, cupMaterial);
-		cup.castShadow = true;
-		cup.progressSpeed = 0;
-		cup.hidingProgress = 0;
-		var hideTarget = null
-
-		cup.hide = function( newHideTarget )
-		{
-			hideTarget = newHideTarget
-			this.hidingProgress = 0
-			this.progressSpeed = frameDelta * 1.5
-		}
-
-		cup.reveal = function()
-		{
-			THREE.SceneUtils.detach(this,hideTarget,scene)
-			this.progressSpeed = -frameDelta * 1.5
-		}
-
-		cup.update = function()
-		{
-			if(hideTarget !== null)
-			{
-				var behindPosition = hideTarget.position.clone()
-				behindPosition.z -= cupHeight
-
-				var oldHidingProgress = this.hidingProgress
-				this.hidingProgress += this.progressSpeed
-
-				if(this.hidingProgress < 1) //go to it
-				{
-					this.position.lerpVectors(this.unusedPosition,behindPosition,this.hidingProgress)
-					this.rotation.x = -TAU/4 * this.hidingProgress
-				}
-				else if(this.hidingProgress < 2) //go forward
-				{
-					this.position.lerpVectors(behindPosition,hideTarget.position,this.hidingProgress-1)
-					this.rotation.x = -TAU/4
-				}
-				else if(this.hidingProgress < 3) //enclose it
-				{
-					var progressThroughThisPart = this.hidingProgress-2
-					this.position.copy(hideTarget.position)
-					this.rotation.x = -TAU/4 * (1-progressThroughThisPart)
-				}
-				else if(oldHidingProgress < 3)//make sure we've enclosed it
-				{
-					this.position.copy( hideTarget.position )
-					this.rotation.x = 0;
-
-					THREE.SceneUtils.attach(this,scene,hideTarget)
-
-					this.hidingProgress = 3
-					this.progressSpeed = 0;
-				}
-			}
-		}
-		objectsToBeUpdated.push( cup )
-
-		scene.add( cup )
-		return cup;
-	}
-
-	var cups = Array(objectsToHide.length);
-	for(var i = 0; i < cups.length; i++)
-	{
-		cups[i] = Cup();
-		cups[i].unusedPosition = new THREE.Vector3(1.2,-(i-1) * cupHeight * 1.2,0)
-		cups[i].position.copy(cups[i].unusedPosition)
-	}
-
-	var duplicate = null
-
-	//"story"
-	{
-		
-		for(var i = 0; i < objectsToHide.length; i++)
-		{
-			cups[i].hide(objectsToHide[i])
-		}
-		
-		var scrambleCount = 0
-		var startingSwapsPerSecond = 1.2
-		var swapsPerSecond = startingSwapsPerSecond
-		var originA = new THREE.Vector3()
-		var originB = new THREE.Vector3()
-		var objectA = null
-		var objectB = null
-		var swapProgress = 0
-
-		var manager = {};
-		var puzzlingStep = 0;
-		var scrambleStarted = false;
-		var duplicationStarted = false;
-		manager.update = function()
-		{
-			if(puzzlingStep === 0) //moving cups
-			{
-				if(cups[0].hidingProgress >= 3)
-				{
-					scrambleCount = defaultScrambleAmount
-					puzzlingStep++;
-				}
-			}
-
-			if( puzzlingStep === 1 ) //duplication
-			{
-				if( scrambleCount === 0 )
-				{
-					wand.duplicateObjectAndCoveringCup( objectsToHide[0] )
-					puzzlingStep++;
-				}
-			}
-
-			if( puzzlingStep === 2 )
-			{
-				if( duplicate !== null && duplicate.movementProgress >= 1)
-				{
-					scrambleCount = defaultScrambleAmount
-					puzzlingStep++;
-				}
-			}
-
-			if( puzzlingStep === 3 )
-			{
-				if( duplicate !== null && duplicate.movementProgress >= 1)
-				{
-					scrambleCount = defaultScrambleAmount
-					puzzlingStep++;
-				}
-			}
-
-			if( puzzlingStep === 4 )
-			{
-				if( scrambleCount === 0 )
-				{
-					for(var i = 0; i < cups.length; i++)
-					{
-						cups[i].reveal();
-					}
-					puzzlingStep++;
-				}
-			}
-
-			//-----actually doing stuff
-			if( scrambleCount !== 0 )
-			{
-				if( objectA === null )
-				{
-					var swap = Math.floor(Math.random() * objectsToHide.length)
-					objectA = objectsToHide[swap];
-					objectB = objectsToHide[(swap+1)%objectsToHide.length]
-
-					originA.copy(objectA.position)
-					originB.copy(objectB.position)
-				}
-
-				swapProgress += frameDelta * swapsPerSecond
-
-				var pointToRotateAround = originA.clone().lerp(originB,0.5)
-
-				objectA.position.copy(originA)
-				objectA.position.sub(pointToRotateAround)
-				objectA.position.applyAxisAngle(zUnit,TAU / 2 * swapProgress)
-				objectA.position.add(pointToRotateAround)
-
-				objectB.position.copy(originB)
-				objectB.position.sub(pointToRotateAround)
-				objectB.position.applyAxisAngle(zUnit,TAU / 2 * swapProgress)
-				objectB.position.add(pointToRotateAround)
-
-				if( swapProgress >= 1 )
-				{
-					objectA.position.copy(originB)
-					objectB.position.copy(originA)
-
-					objectA = null;
-					objectB = null;
-
-					swapProgress = 0;
-
-					swapsPerSecond *= 1.5
-					swapsPerSecond = clamp(swapsPerSecond,0,8)
-
-					scrambleCount--;
-					if(scrambleCount <= 0)
-					{
-						swapsPerSecond = startingSwapsPerSecond
-					}
-				}
-			}
-		}
-	}
-	objectsToBeUpdated.push(manager)
-}
 
 function initEditableDistributionWithPopulation()
 {
