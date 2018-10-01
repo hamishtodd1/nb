@@ -28,98 +28,78 @@ function initClt()
 /*
 	Show the numbers to say that this is what “data” is
 
-	Teacher can control scramble amount
-
+	
 	Slides
 	Finger thing (just a graph next to them)
 	Ball thing where it gets faster and faster
 	Graph thing where you try to guess
-	Graph thing where you try to get out early using
+	Graph thing where you try to get out early using normal dist
 	Final slide: values in front of mug are your "sample"
-
+	
 	Schedule
-		Control distribution and population
-			Wobble goes up and down distribution; new ones pop in and out
-			There will be a discrete step by which you can adjust them
-			Animation
-				sort by height (can mark median)
-				Group by height
-
-		Increase the number of samples hugely while keeping the distribution the same
-			Clicking a distribution gets one sample from it
-
-		Introduce folks to the cup interface
-			Red ball, blue ball, green ball
-			Do some where you CAN keep track of the mugs. Increase scramblecount by 1 when they get it right. And ball number?
-		Click a cup loads and try to figure out which shape is being built up
-		Then we add in the average
-			It's another, differently colored, ball inamongst the balls they're building up
-			Useful because it's important to see that it hones in on something = "regression to the mean"
-
-		// Central limit theorem
-		// 	One of the distributions is one that they all got
-		// 	Their averages are plotted on teacher screen
-		// 		You can hover on teacher screen and you'll see on your own screen that teacher is hovering on yours
-		// 	Bulk it up with a few more?
-		// 	Woo it's a normal distribution
-		// 	Give loads more examples, using every distribution they faced 
-
-		Back to puzzles
-			Now you can click and hold and you'll get them
-			They see the normal distribution describing where the average should go
-			They should get used to looking at the normal distribution next to it, using it to "get out early"
-			Still should feel slow
-		Now you get a big bunch at a time
-			You can do it faster
-		Now...
-			We are NOT showing the actual graph, or actual samples, just the normal distribution
-			And all you're doing is accepting/rejecting a single graph
-		Now: automated. You see loads at a time.
-			You see ~200 sample means marked on as many distributions next to a "accept/reject"
-			You can control the p (width of acceptance on graph) - changes many accept/reject statuses
-			You're given a specific n, at least at this point
-			Then you click "go" and "correct/incorrect" pop up on all the graphs.
-			You get shown another bunch
-			Should be able to see that approximately 200 * p of them give false positives
-		Then?
-			You can control the n - but it means you do more/less experiments
-
-		Possibly: understanding normal distribution in particular.
-			Choose some z. Everyone bets on whether our random variable will be in [-z,z]
-			Click to spit out
-			See the standard deviation. Get an intuition for the 95% thing
-			To do this you need a thing where they can "vote"
-			z-test: "what is my probability of being as many std. devs. from the mean as I am?"
-
-	Presentation
-		How do you know your heartrate is normal?
-		Some things in nature where many identical things are added?
-			If you add a random quantity of stuff to a pile of stuff, over time the pile of stuff's size will be modelled as a normal dist
-			Stacking chairs? adding extra lightbulbs to something?
-			position of a free particle governed by the Schrodinger equation apparently http://aidanlyon.com/media/publications/Lyon-normal_distributions.pdf
-			Note that you only get much variation in height if you allow age to vary
-		Vaccines cause autism as an example of an experiment gone wrong
-		Problem is that the back-and-forth control is not exactly changing a probability distribution, it's just a histogram
-			So we say: with the "probability distribution", you're just "not getting all of them"
-		Switch to applications: heart rate (series of spikes) arm length and throw length. Or kids heights marked on a doorway
-*/
-
-function initFinger()
-{
-	var fingerMaterial = new THREE.MeshBasicMaterial()
-	// fingerMaterial.map = new THREE.TextureLoader().load( "data/textures/finger.jpg" )
-	var fingerGeometry = new THREE.OriginCorneredPlaneBufferGeometry(0.5,1)
-
-	var fingerRuler = new THREE.Mesh( fingerGeometry, fingerMaterial )
-	fingerRuler.scale.multiplyScalar(0.5)
-	fingerRuler.position.x -= 0.5
-
-	var markerThickness = 0.01
-	var lengthMarker = new THREE.Mesh(
-		new THREE.OriginCorneredPlaneBufferGeometry(markerThickness,1),
-		new THREE.MeshBasicMaterial({color:0x0000FF}))
-	lengthMarker.position.x = fingerRuler.position.x - 0.05
-	var cmMarkers = Array(10)
+	Control distribution and population
+	Wobble goes up and down distribution; new ones pop in and out
+	There will be a discrete step by which you can adjust them
+	Animation
+	sort by height (can mark median)
+	Group by height
+	
+	Increase the number of samples hugely while keeping the distribution the same
+	Clicking a distribution gets one sample from it
+	
+	Introduce folks to the cup interface
+	Red ball, blue ball, green ball
+	Do some where you CAN keep track of the mugs. Increase scramblecount by 1 when they get it right. And ball number?
+	Click a cup loads and try to figure out which shape is being built up
+	Then we add in the average
+	It's another, differently colored, ball inamongst the balls they're building up
+	Useful because it's important to see that it hones in on something = "regression to the mean"
+	
+	// Central limit theorem
+	// 	One of the distributions is one that they all got
+	// 	Their averages are plotted on teacher screen
+	// 		You can hover on teacher screen and you'll see on your own screen that teacher is hovering on yours
+	// 	Bulk it up with a few more?
+	// 	Woo it's a normal distribution
+	// 	Give loads more examples, using every distribution they faced 
+	
+	Back to puzzles
+	Now you can click and hold and you'll get them
+	They see the normal distribution describing where the average should go
+	They should get used to looking at the normal distribution next to it, using it to "get out early"
+	Still should feel slow
+	Now you get a big bunch at a time
+	You can do it faster
+	Now...
+	We are NOT showing the actual graph, or actual samples, just the normal distribution
+	And all you're doing is accepting/rejecting a single graph
+	Now: automated. You see loads at a time.
+	You see ~200 sample means marked on as many distributions next to a "accept/reject"
+	You can control the p (width of acceptance on graph) - changes many accept/reject statuses
+	You're given a specific n, at least at this point
+	Then you click "go" and "correct/incorrect" pop up on all the graphs.
+	You get shown another bunch
+	Should be able to see that approximately 200 * p of them give false positives
+	Then?
+	You can control the n - but it means you do more/less experiments
+	*/
+	
+	function initFinger()
+	{
+		var fingerMaterial = new THREE.MeshBasicMaterial()
+		// fingerMaterial.map = new THREE.TextureLoader().load( "data/textures/finger.jpg" )
+		var fingerGeometry = new THREE.OriginCorneredPlaneBufferGeometry(0.5,1)
+		
+		var fingerRuler = new THREE.Mesh( fingerGeometry, fingerMaterial )
+		fingerRuler.scale.multiplyScalar(0.5)
+		fingerRuler.position.x -= 0.5
+		
+		var markerThickness = 0.01
+		var lengthMarker = new THREE.Mesh(
+			new THREE.OriginCorneredPlaneBufferGeometry(markerThickness,1),
+			new THREE.MeshBasicMaterial({color:0x0000FF}))
+			lengthMarker.position.x = fingerRuler.position.x - 0.05
+			var cmMarkers = Array(10)
 	var markerLength = markerThickness*4
 	var markerSpacing = 0.1
 	for( var i = 0; i < cmMarkers.length; i++ )
