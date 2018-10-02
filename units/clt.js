@@ -16,8 +16,6 @@ function initClt()
 	// }
 
 	{
-		var chapters = []
-		
 		var rightArrow = new THREE.Mesh(new THREE.Geometry(), new THREE.MeshBasicMaterial({side:THREE.DoubleSide, color:0xFF0000}))
 		rightArrow.geometry.vertices.push(new THREE.Vector3(0,0,0),new THREE.Vector3(-1,1,0),new THREE.Vector3(-1,-1,0))
 		rightArrow.geometry.faces.push(new THREE.Face3(0,1,2))
@@ -43,7 +41,6 @@ function initClt()
 		clickables.push(rightArrow)
 		rightArrow.onClick = function()
 		{
-			console.log("yo")
 			changeChapter(1)
 		}
 		clickables.push(leftArrow)
@@ -53,32 +50,47 @@ function initClt()
 		}
 	}
 
-	var coloredBalls = Array(3)
+	initClickableDistributions()
+
+	// Chapter()
+
+	// initFinger()
+
+	var cupChapter = Chapter()
+	var coloredBalls = Array(2)
 	for(var i = 0; i < coloredBalls.length; i++)
 	{
 		coloredBalls[i] = ColoredBall()
 		coloredBalls[i].position.y = i/(coloredBalls.length-1) * 0.8 - 0.4
+		cupChapter.addSceneElement(coloredBalls[i])
 	}
-	var cupChapter = CupGame(coloredBalls, 11)	
-	chapters.push( cupChapter )
+	makeCupGame(coloredBalls, 1,cupChapter)
 
-	var moreColoredBalls = Array(2)
-	for(var i = 0; i < moreColoredBalls.length; i++)
+	var singleCdChapter = Chapter()
+	var singularDist = HumpedClickableDistribution([1,4,1,1],false,singleCdChapter)
+	singularDist.position.y -= 0.24
+
 	{
-		moreColoredBalls[i] = ColoredBall()
-		moreColoredBalls[i].position.y = i/(moreColoredBalls.length-1) * 0.8 - 0.4
+		var clickableDistributionsCupChapter = Chapter()
+
+		var oneHumpedDistribution = HumpedClickableDistribution([1,1,1,1,4.5,1],false,clickableDistributionsCupChapter)
+		var twoHumpedDistribution = HumpedClickableDistribution([1,2.75,1,1,4.5,1],false,clickableDistributionsCupChapter)
+		var threeHumpedDistribution = HumpedClickableDistribution([4,1,4,1,1,4],false,clickableDistributionsCupChapter)
+		oneHumpedDistribution.scale.multiplyScalar(0.2)
+		twoHumpedDistribution.scale.multiplyScalar(0.2)
+		threeHumpedDistribution.scale.multiplyScalar(0.2)
+
+		var clickableDistributions = [oneHumpedDistribution,twoHumpedDistribution,threeHumpedDistribution]
+
+		for(var i = 0; i < clickableDistributions.length; i++)
+		{
+			clickableDistributions[i].position.y = 0.3 * (i-(clickableDistributions.length-1)/2)
+		}
 	}
-	var otherCupChapter = CupGame(moreColoredBalls, 2)	
-	chapters.push( otherCupChapter )
 
-	var fingerGame = initFinger()
-	chapters.push( fingerGame )
-	
-	// var clickableDistributions = initClickableDistributions(false,3)
-	// var clickableDistributionCupChapter = CupGame(clickableDistributions, 1)
-	// chapters.push( clickableDistributionCupChapter )
+	makeCupGame(clickableDistributions, 1, clickableDistributionsCupChapter)
 
-	chapters.push({setUp:function(){},setDown:function(){}})
+	Chapter()
 
 	var chapter = chapters[0]
 	changeChapter(0)
@@ -86,11 +98,14 @@ function initClt()
 
 /*
 	TODO
-	Finger thing (graph next to them) - should be on its side
+	Finger thing (graph next to them) - should be on its side. Bump going up and down
+	correct and incorrect signs, jesus christ
 
 	Show slides
 	Ball thing where it gets faster and faster
+	Graph where you're learning how it works
 	Graph thing where you try to guess
+	
 	Graph thing where you try to get out early using normal dist
 	Final slide: values in front of mug are your "sample"	
 	
@@ -123,22 +138,22 @@ function initClt()
 	// 	Give loads more examples, using every distribution they faced 
 	*/
 
-	function initFinger()
-	{
-		var fingerMaterial = new THREE.MeshBasicMaterial()
-		// fingerMaterial.map = new THREE.TextureLoader().load( "data/textures/finger.jpg" )
-		var fingerGeometry = new THREE.OriginCorneredPlaneBufferGeometry(0.5,1)
-		
-		var fingerRuler = new THREE.Mesh( fingerGeometry, fingerMaterial )
-		fingerRuler.scale.multiplyScalar(0.5)
-		fingerRuler.position.x -= 0.5
-		
-		var markerThickness = 0.01
-		var lengthMarker = new THREE.Mesh(
-			new THREE.OriginCorneredPlaneBufferGeometry(markerThickness,1),
-			new THREE.MeshBasicMaterial({color:0x0000FF}))
-			lengthMarker.position.x = fingerRuler.position.x - 0.05
-			var cmMarkers = Array(10)
+function initFinger()
+{
+	var fingerMaterial = new THREE.MeshBasicMaterial()
+	// fingerMaterial.map = new THREE.TextureLoader().load( "data/textures/finger.jpg" )
+	var fingerGeometry = new THREE.OriginCorneredPlaneBufferGeometry(0.5,1)
+	
+	var fingerRuler = new THREE.Mesh( fingerGeometry, fingerMaterial )
+	fingerRuler.scale.multiplyScalar(0.5)
+	fingerRuler.position.x -= 0.5
+	
+	var markerThickness = 0.01
+	var lengthMarker = new THREE.Mesh(
+		new THREE.OriginCorneredPlaneBufferGeometry(markerThickness,1),
+		new THREE.MeshBasicMaterial({color:0x0000FF}))
+	lengthMarker.position.x = fingerRuler.position.x - 0.05
+	var cmMarkers = Array(10)
 	var markerLength = markerThickness*4
 	var markerSpacing = 0.1
 	for( var i = 0; i < cmMarkers.length; i++ )
@@ -177,35 +192,6 @@ function initClt()
 		this.clickedPoint = mouse.rayIntersectionWithZPlane(0)
 	}
 
-	// var fingerGame = {
-	// 	setUp: function()
-	// 	{
-	// 		clickables.push(fingerRuler)
-	// 		objectsToBeUpdated.push(fingerRuler)
-
-	// 		scene.add( fingerRuler )
-	// 		scene.add( lengthMarker )
-
-	// 		for( var i = 0; i < cmMarkers.length; i++ )
-	// 		{
-	// 			scene.add( cmMarkers[i] )
-	// 		}
-	// 	},
-	// 	setDown: function()
-	// 	{
-	// 		clickables.splice(clickables.indexOf(fingerRuler),1)
-	// 		objectsToBeUpdated.splice(objectsToBeUpdated.indexOf(fingerRuler),1)
-
-	// 		scene.remove( fingerRuler )
-	// 		scene.remove( lengthMarker )
-
-	// 		for( var i = 0; i < cmMarkers.length; i++ )
-	// 		{
-	// 			scene.remove( cmMarkers[i] )
-	// 		}
-	// 	}
-	// }
-
 	var fingerChapter = Chapter()
 	fingerChapter.addSceneElement(fingerRuler)
 	fingerChapter.addSceneElement(lengthMarker)
@@ -215,98 +201,36 @@ function initClt()
 	{
 		fingerChapter.addSceneElement(cmMarkers[i])
 	}
-
-	return fingerChapter
 }
 
-function Chapter()
+function HumpedClickableDistribution(arrayOfBlocks, normalDistributionsPresent,chapter)
 {
-	var chapter = {
-		sceneElementsToAdd:[],
-		sceneElementsToRemove:[],
-		updatingObjectsToAdd:[],
-		updatingObjectsToRemove:[],
-		clickablesToAdd:[],
-		clickablesToRemove:[],
-		functionsToCallOnSetUp:[],
-		functionsToCallOnSetDown:[]
-	}
-	chapter.addSceneElement = function(object3D)
+	//the distribution is made of blocks
+	var totalBlocks = 0;
+	for(var i = 0; i < arrayOfBlocks.length; i++)
 	{
-		this.sceneElementsToAdd.push(object3D)
-		this.sceneElementsToRemove.push(object3D)
-	}
-	chapter.addUpdatingObject = function(object)
-	{
-		this.updatingObjectsToAdd.push(object)
-		this.updatingObjectsToRemove.push(object)
-	}
-	chapter.addClickable = function(object)
-	{
-		this.clickablesToAdd.push(object)
-		this.clickablesToRemove.push(object)
+		totalBlocks += arrayOfBlocks[i]
 	}
 
-	chapter.setUp = function()
+	function humpedSamplingFunction()
 	{
-		for(var i = 0; i < this.sceneElementsToAdd.length; i++)
+		var blockWeAreIn = Math.random() * totalBlocks
+		var blocksCountedThrough = 0;
+		for(var i = 0; i < arrayOfBlocks.length; i++)
 		{
-			scene.add(this.sceneElementsToAdd[i])
-		}
-
-		for(var i = 0; i < this.updatingObjectsToAdd.length; i++)
-		{
-			objectsToBeUpdated.push(this.updatingObjectsToAdd[i])
-		}
-
-		for(var i = 0; i < this.clickablesToAdd.length; i++)
-		{
-			clickables.push(this.clickablesToAdd[i])
-		}
-
-		for(var i = 0; i < this.functionsToCallOnSetUp.length; i++)
-		{
-			this.functionsToCallOnSetUp[i]()
-		}
-
-		correctSign.material.opacity = 0.0001
-		incorrectSign.material.opacity = 0.0001
-	}
-	chapter.setDown = function()
-	{
-		for(var i = 0; i < this.sceneElementsToRemove.length; i++)
-		{
-			scene.remove(this.sceneElementsToRemove[i])
-		}
-
-		for(var i = 0; i < this.updatingObjectsToRemove.length; i++)
-		{
-			var index = objectsToBeUpdated.indexOf(this.updatingObjectsToRemove[i])
-			if(index !== -1)
+			if(blockWeAreIn < blocksCountedThrough + arrayOfBlocks[i] )
 			{
-				objectsToBeUpdated.splice(index,1)
+				// console.log(i)
+				return i
 			}
-		}
-
-		for(var i = 0; i < this.clickablesToRemove.length; i++)
-		{
-			var index = clickables.indexOf(this.clickablesToRemove[i])
-			if(index !== -1)
-			{
-				clickables.splice(index,1)
-			}
-		}
-
-		for(var i = 0; i < this.functionsToCallOnSetDown.length; i++)
-		{
-			this.functionsToCallOnSetDown[i]()
+			blocksCountedThrough += arrayOfBlocks[i]
 		}
 	}
-
-	return chapter;
+	return ClickableDistribution( humpedSamplingFunction, arrayOfBlocks.length,240, normalDistributionsPresent,chapter )
 }
 
-function initClickableDistributions(normalDistributionsPresent, numWeWant)
+var ClickableDistribution = null;
+function initClickableDistributions()
 {
 	var textureLoader = new THREE.TextureLoader()
 	var profilePictures = Array(19)
@@ -334,7 +258,7 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 
 	var lowestUnusedProfilePicture = 0;
 
-	function ClickableDistribution( samplingFunction,numControlPoints = 11,numSamples = 30 * numControlPoints, samples )
+	ClickableDistribution = function( samplingFunction,numControlPoints = 11,numSamples = 30 * numControlPoints, normalDistributionsPresent, chapter, samples )
 	{
 		//if you go too high on numControlPoints the noise is bad ;_;
 
@@ -343,7 +267,26 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 			new THREE.MeshBasicMaterial({transparent:true,opacity:0.001}))
 		clickableDistribution.geometry.vertices[2].y = 0
 		clickableDistribution.geometry.vertices[3].y = 0
-		clickables.push( clickableDistribution )
+
+		//very hacky
+		var chapterIsSetUp = chapter.sceneElementsToAdd.length !== 0 && chapter.sceneElementsToAdd[0].parent === scene
+		if(!chapterIsSetUp)
+		{
+			chapter.addClickable(clickableDistribution)
+			chapter.addSceneElement(clickableDistribution)
+			chapter.addUpdatingObject(clickableDistribution)
+		}
+		else
+		{
+			clickables.push(clickableDistribution)
+			scene.add(clickableDistribution)
+			objectsToBeUpdated.push(clickableDistribution)
+
+			chapter.updatingObjectsToRemove.push(clickableDistribution)
+			chapter.sceneElementsToRemove.push(clickableDistribution)
+			chapter.clickablesToRemove.push(clickableDistribution)
+		}
+
 		//going the samples route is kiiiinda cheating, but you want to give people an assurance that they'll eventually reproduce what they'll seeing
 		var numSamplesAvailable = numSamples;
 		clickableDistribution.samplesDone = new Array(numSamples)
@@ -463,7 +406,7 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 				}
 			}
 
-			var member = Member(controlPoints[ 0 ].x, placeToLand)
+			var member = Member(controlPoints[ 0 ].x, placeToLand,chapter)
 			member.scale.x = spacing * 0.9
 			memberHolder.add(member)
 
@@ -488,15 +431,13 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 		clickableDistribution.height = highestPeak
 		clickableDistribution.geometry.vertices[0].y = highestPeak
 		clickableDistribution.geometry.vertices[1].y = highestPeak
-		scene.add(clickableDistribution)
 
-		objectsToBeUpdated.push(clickableDistribution)
 		clickableDistribution.update = function()
 		{
 			if(mouse.clicking && mouse.lastClickedObject === this )
 			{
 				// if( !mouse.oldClicking )
-				if( mouse.oldClicking || frameCount % 11 === 0 ) //always get the first
+				if( !mouse.oldClicking || frameCount % 11 === 0 ) //always get the first
 				{
 					this.vomitMember()
 				}
@@ -524,7 +465,7 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 
 		clickableDistribution.wandClone = function()
 		{
-			var clone = ClickableDistribution(samplingFunction, numControlPoints,numSamples,this.samples)
+			var clone = ClickableDistribution(samplingFunction, numControlPoints,numSamples, false, chapter,this.samples)
 			clone.scale.copy(this.scale)
 			// for(var i = clone.children.length; i < this.children.length; i++)
 			// {
@@ -548,7 +489,7 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 		return clickableDistribution;
 	}
 
-	function Member(initialX, placeToLand)
+	function Member(initialX, placeToLand, chapter)
 	{
 		/*
 			Little shockwave? Little bounce?
@@ -576,6 +517,7 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 			}
 		}
 		objectsToBeUpdated.push(member)
+		chapter.updatingObjectsToRemove.push(member)
 		
 		member.position.x = 0
 		member.position.y = member.placeToLand.y
@@ -592,60 +534,7 @@ function initClickableDistributions(normalDistributionsPresent, numWeWant)
 			memberGeometry.vertices[i].y = 0
 		}
 	}
-
-	function HumpedClickableDistribution(arrayOfBlocks)
-	{
-		//the distribution is made of blocks
-		var totalBlocks = 0;
-		for(var i = 0; i < arrayOfBlocks.length; i++)
-		{
-			totalBlocks += arrayOfBlocks[i]
-		}
-
-		function humpedSamplingFunction()
-		{
-			var blockWeAreIn = Math.random() * totalBlocks
-			var blocksCountedThrough = 0;
-			for(var i = 0; i < arrayOfBlocks.length; i++)
-			{
-				if(blockWeAreIn < blocksCountedThrough + arrayOfBlocks[i] )
-				{
-					// console.log(i)
-					return i
-				}
-				blocksCountedThrough += arrayOfBlocks[i]
-			}
-		}
-		return ClickableDistribution( humpedSamplingFunction, arrayOfBlocks.length,240 )
-	}
-
-	var oneHumpedDistribution = HumpedClickableDistribution([1,1,1,1,4.5,1])
-
-	if( numWeWant !== 1 )
-	{
-		var twoHumpedDistribution = HumpedClickableDistribution([1,2.75,1,1,4.5,1])
-		var threeHumpedDistribution = HumpedClickableDistribution([4,1,4,1,1,4])
-
-		oneHumpedDistribution.scale.multiplyScalar(0.2)
-		twoHumpedDistribution.scale.multiplyScalar(0.2)
-		threeHumpedDistribution.scale.multiplyScalar(0.2)
-
-		var clickableDistributions = [oneHumpedDistribution,twoHumpedDistribution,threeHumpedDistribution]
-	}
-	else
-	{
-		var clickableDistributions = [oneHumpedDistribution]
-	}
-
-	for(var i = 0; i < clickableDistributions.length; i++)
-	{
-		clickableDistributions[i].position.y = 0.3 * (i-(clickableDistributions.length-1)/2)
-	}
-
-	return clickableDistributions
 }
-
-
 
 function initEditableDistributionWithPopulation()
 {

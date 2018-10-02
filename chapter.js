@@ -1,3 +1,5 @@
+var chapters = []
+
 function Chapter()
 {
 	var chapter = {
@@ -9,7 +11,10 @@ function Chapter()
 		clickablesToRemove:[],
 		functionsToCallOnSetUp:[],
 		functionsToCallOnSetDown:[]
-	}
+    }
+    
+    chapters.push(chapter)
+
 	chapter.addSceneElement = function(object3D)
 	{
 		this.sceneElementsToAdd.push(object3D)
@@ -52,7 +57,10 @@ function Chapter()
 	{
 		for(var i = 0; i < this.sceneElementsToRemove.length; i++)
 		{
-			scene.remove(this.sceneElementsToRemove[i])
+            if(this.sceneElementsToRemove[i].parent)
+            {
+                this.sceneElementsToRemove[i].parent.remove(this.sceneElementsToRemove[i])
+            }
 		}
 
 		for(var i = 0; i < this.updatingObjectsToRemove.length; i++)

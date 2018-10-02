@@ -14,28 +14,21 @@ function ColoredBall()
 
 var correctSign = makeTextSign("Correct!")
 correctSign.material.color.setRGB(0,1,0)
-correctSign.material.transparent = true
-correctSign.material.opacity = 0.00001
+// correctSign.material.transparent = true
+// correctSign.material.opacity = 0.00001
 correctSign.scale.multiplyScalar(3)
-correctSign.position.x = -0.7
+correctSign.position.x = -1.7
 correctSign.position.y = 0.3
 var incorrectSign = makeTextSign("Incorrect!")
 incorrectSign.material.color.setRGB(1,0,0)
-incorrectSign.material.transparent = true
-incorrectSign.material.opacity = 0.00001
+// incorrectSign.material.transparent = true
+// incorrectSign.material.opacity = 0.00001
 incorrectSign.scale.multiplyScalar(3)
-incorrectSign.position.x = -0.7
+incorrectSign.position.x = -1.7
 incorrectSign.position.y = 0.3
 
-function CupGame( objectsToHide, defaultScrambleAmount )
+function makeCupGame( objectsToHide, defaultScrambleAmount, chapter )
 {
-	var chapter = Chapter()
-
-	for(var i = 0; i < objectsToHide.length; i++)
-	{
-		chapter.addSceneElement(objectsToHide[i])
-	}
-
 	var duplicate = null
 	
 	chapter.addSceneElement(correctSign)	
@@ -51,13 +44,23 @@ function CupGame( objectsToHide, defaultScrambleAmount )
 	wand.geometry.vertices[2].y = 0
 	wand.geometry.vertices[3].y = 0
 	wand.scale.setScalar(0.5)
+	chapter.addSceneElement(wand)
+
     wand.objectToDuplicate = null
     wand.duplicationProgress = 0;
     var progressSpeed = 0;
     wand.unusedPosition = new THREE.Vector3(1.1,0,0)
     wand.position.copy(wand.unusedPosition)
 	var duplicatingPosition = null
-	chapter.addSceneElement(wand)
+
+	wand.reset = function()
+	{
+		this.objectToDuplicate = null
+		this.duplicationProgress = 0
+		progressSpeed = 0
+		this.position.copy(this.unusedPosition)
+		duplicatingPosition = null
+	}
 
 	wand.duplicateObjectAndCoveringCup = function(object)
 	{
@@ -169,18 +172,27 @@ function CupGame( objectsToHide, defaultScrambleAmount )
 		cup.hidingProgress = 0;
 		var hideTarget = null
 
+		cup.reset = function()
+		{
+			hideTarget = null
+			this.progressSpeed = 0
+			this.hidingProgress = 0
+		}
+
 		var answerSelector = new THREE.Mesh(answerSelectorGeometry,new THREE.MeshBasicMaterial({color:0x000000}))
 		cup.answerSelector = answerSelector
 		answerSelector.onClick = function()
 		{
 			if( this.associatedObject === duplicate.originalObject )
 			{
-				correctSign.material.opacity = 1
+				// correctSign.position.x = -0.7
+				// correctSign.updateText("Correct!")
 				this.material.color.setRGB(0,1,0)
 			}
 			else
 			{
-				incorrectSign.material.opacity = 1
+				// incorrectSign.position.x = -0.7
+				// incorrectSign.updateText("Incorrect!")
 				this.material.color.setRGB(1,0,0)
 			}
 			duplicate.remove(duplicate.cup)
@@ -263,21 +275,54 @@ function CupGame( objectsToHide, defaultScrambleAmount )
 	}
 
 	//"story"
-	{
-		
+	{		
 		for(var i = 0; i < objectsToHide.length; i++)
 		{
 			cups[i].hide(objectsToHide[i])
 		}
 		
-		var scrambleCount = 0
-		var startingSwapsPerSecond = 1.2
-		var swapsPerSecond = startingSwapsPerSecond
-		var originA = new THREE.Vector3()
-		var originB = new THREE.Vector3()
-		var objectA = null
-		var objectB = null
-		var swapProgress = 0
+		var scrambleCount;
+		var startingSwapsPerSecond;
+		var swapsPerSecond;
+		var originA;
+		var originB;
+		var objectA;
+		var objectB;
+		var swapProgress;
+
+		var resetButton = makeTextSign("Reset")
+		resetButton.position.x = 0.8
+		resetButton.position.y = -0.4
+		chapter.addSceneElement(resetButton)
+		function reset()
+		{
+			if(duplicate !== null)
+			{
+				scene.remove(duplicate)
+				duplicate = null //garbage collector
+			}
+
+			puzzlingStep = 0
+			puzzlingStep = 0;
+			scrambleStarted = false;
+			duplicationStarted = false;
+			scrambleCount = 0
+			swapsPerSecond = startingSwapsPerSecond
+			originA = new THREE.Vector3()
+			originB = new THREE.Vector3()
+			objectA = null
+			objectB = null
+			swapProgress = 0
+
+			wand.reset()
+			for(var i = 0; i < cups.length; i++)
+			{
+				cups[i].reset()
+			}
+		}
+		reset()
+		chapter.addClickable(resetButton)
+		resetButton.onClick = reset
 
 		var manager = {};
 		var puzzlingStep = 0;
@@ -374,52 +419,6 @@ function CupGame( objectsToHide, defaultScrambleAmount )
 		}
 	}
 	chapter.addUpdatingObject(manager)
-
-	chapter.setUp = function()
-	{
-		for(var i = 0; i < this.sceneElementsToAdd.length; i++)
-		{
-			scene.add(this.sceneElementsToAdd[i])
-		}
-
-		for(var i = 0; i < this.updatingObjectsToAdd.length; i++)
-		{
-			objectsToBeUpdated.push(this.updatingObjectsToAdd[i])
-		}
-
-		for(var i = 0; i < this.clickablesToAdd.length; i++)
-		{
-			clickables.push(this.clickablesToAdd[i])
-		}
-
-		correctSign.material.opacity = 0.0001
-		incorrectSign.material.opacity = 0.0001
-	}
-	chapter.setDown = function()
-	{
-		for(var i = 0; i < this.sceneElementsToRemove.length; i++)
-		{
-			scene.remove(this.sceneElementsToRemove[i])
-		}
-
-		for(var i = 0; i < this.updatingObjectsToRemove.length; i++)
-		{
-			var index = objectsToBeUpdated.indexOf(this.updatingObjectsToRemove[i])
-			if(index !== -1)
-			{
-				objectsToBeUpdated.splice(index,1)
-			}
-		}
-
-		for(var i = 0; i < this.clickablesToRemove.length; i++)
-		{
-			var index = clickables.indexOf(this.clickablesToRemove[i])
-			if(index !== -1)
-			{
-				clickables.splice(index,1)
-			}
-		}
-	}
 
 	return chapter
 }
