@@ -1,6 +1,6 @@
 var chapters = []
 
-function Chapter()
+function Chapter(newChapterPosition)
 {
 	var chapter = {
 		sceneElementsToAdd:[],
@@ -13,7 +13,14 @@ function Chapter()
 		functionsToCallOnSetDown:[]
     }
     
-    chapters.push(chapter)
+    if(newChapterPosition === undefined)
+    {
+        chapters.push(chapter)
+    }
+    else
+    {
+        chapters.splice(newChapterPosition,0,chapter)
+    }
 
 	chapter.addSceneElement = function(object3D)
 	{

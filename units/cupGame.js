@@ -44,23 +44,13 @@ function makeCupGame( objectsToHide, defaultScrambleAmount, chapter )
 	wand.geometry.vertices[2].y = 0
 	wand.geometry.vertices[3].y = 0
 	wand.scale.setScalar(0.5)
-	chapter.addSceneElement(wand)
-
     wand.objectToDuplicate = null
     wand.duplicationProgress = 0;
     var progressSpeed = 0;
     wand.unusedPosition = new THREE.Vector3(1.1,0,0)
     wand.position.copy(wand.unusedPosition)
 	var duplicatingPosition = null
-
-	wand.reset = function()
-	{
-		this.objectToDuplicate = null
-		this.duplicationProgress = 0
-		progressSpeed = 0
-		this.position.copy(this.unusedPosition)
-		duplicatingPosition = null
-	}
+	chapter.addSceneElement(wand)
 
 	wand.duplicateObjectAndCoveringCup = function(object)
 	{
@@ -127,35 +117,6 @@ function makeCupGame( objectsToHide, defaultScrambleAmount, chapter )
 	}
 	chapter.addUpdatingObject(wand)
 
-	var cupRadius = 0.12
-	var cupInnerRadius = cupRadius * 0.86
-	var cupHeight = 2 * cupRadius
-	var cupRoundedness = 4;
-	var radialSegments = 16;
-	var cupGeometry = new THREE.CylinderGeometry( cupRadius, cupRadius, cupHeight, radialSegments)
-
-	var indexOfVertexAtBottom = cupGeometry.vertices.length-1; //2?
-	for(var i = 0; i < cupGeometry.faces.length; i++)
-	{
-		for(var j = 0; j < 3; j++)
-		{
-			if( cupGeometry.faces[i].getCorner(j) === indexOfVertexAtBottom )
-			{
-				cupGeometry.faces[i].set(indexOfVertexAtBottom,indexOfVertexAtBottom,indexOfVertexAtBottom)
-				break;
-			}
-		}
-	}
-	cupGeometry.merge( new THREE.CylinderGeometry( cupInnerRadius, cupInnerRadius, cupHeight, radialSegments,1,true) )
-	cupGeometry.merge( new THREE.RingGeometry( cupInnerRadius, cupRadius, radialSegments).applyMatrix(new THREE.Matrix4().makeRotationX(TAU/4).setPosition(new THREE.Vector3(0,-cupHeight/2,0))) )
-	var cupMaterial = new THREE.MeshLambertMaterial({color:0xC0C0FF, side:THREE.DoubleSide})
-
-	var handleThickness = cupRadius / 6
-	var handleGeometry = new THREE.TorusGeometry(cupRadius/1.5,handleThickness,16,16,TAU/2)
-	handleGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-TAU/4))
-	handleGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(cupRadius-handleThickness,0,0))
-	cupGeometry.merge(handleGeometry)
-
 	var answerSelectorGeometry = new THREE.Geometry()
 	answerSelectorGeometry.vertices.push(
 		new THREE.Vector3(-1.5,0,0),
@@ -171,13 +132,6 @@ function makeCupGame( objectsToHide, defaultScrambleAmount, chapter )
 		cup.progressSpeed = 0;
 		cup.hidingProgress = 0;
 		var hideTarget = null
-
-		cup.reset = function()
-		{
-			hideTarget = null
-			this.progressSpeed = 0
-			this.hidingProgress = 0
-		}
 
 		var answerSelector = new THREE.Mesh(answerSelectorGeometry,new THREE.MeshBasicMaterial({color:0x000000}))
 		cup.answerSelector = answerSelector
@@ -253,6 +207,8 @@ function makeCupGame( objectsToHide, defaultScrambleAmount, chapter )
 					this.position.copy( hideTarget.position )
 					this.rotation.x = 0;
 
+					this.updateMatrixWorld()
+					hideTarget.updateMatrixWorld()
 					THREE.SceneUtils.attach(this,scene,hideTarget)
 
 					this.hidingProgress = 3
@@ -275,54 +231,21 @@ function makeCupGame( objectsToHide, defaultScrambleAmount, chapter )
 	}
 
 	//"story"
-	{		
+	{
+		
 		for(var i = 0; i < objectsToHide.length; i++)
 		{
 			cups[i].hide(objectsToHide[i])
 		}
 		
-		var scrambleCount;
-		var startingSwapsPerSecond;
-		var swapsPerSecond;
-		var originA;
-		var originB;
-		var objectA;
-		var objectB;
-		var swapProgress;
-
-		var resetButton = makeTextSign("Reset")
-		resetButton.position.x = 0.8
-		resetButton.position.y = -0.4
-		chapter.addSceneElement(resetButton)
-		function reset()
-		{
-			if(duplicate !== null)
-			{
-				scene.remove(duplicate)
-				duplicate = null //garbage collector
-			}
-
-			puzzlingStep = 0
-			puzzlingStep = 0;
-			scrambleStarted = false;
-			duplicationStarted = false;
-			scrambleCount = 0
-			swapsPerSecond = startingSwapsPerSecond
-			originA = new THREE.Vector3()
-			originB = new THREE.Vector3()
-			objectA = null
-			objectB = null
-			swapProgress = 0
-
-			wand.reset()
-			for(var i = 0; i < cups.length; i++)
-			{
-				cups[i].reset()
-			}
-		}
-		reset()
-		chapter.addClickable(resetButton)
-		resetButton.onClick = reset
+		var scrambleCount = 0
+		var startingSwapsPerSecond = 1.2
+		var swapsPerSecond = startingSwapsPerSecond
+		var originA = new THREE.Vector3()
+		var originB = new THREE.Vector3()
+		var objectA = null
+		var objectB = null
+		var swapProgress = 0
 
 		var manager = {};
 		var puzzlingStep = 0;
@@ -422,3 +345,32 @@ function makeCupGame( objectsToHide, defaultScrambleAmount, chapter )
 
 	return chapter
 }
+
+var cupRadius = 0.12
+var cupInnerRadius = cupRadius * 0.86
+var cupHeight = 2 * cupRadius
+var cupRoundedness = 4;
+var cupRadialSegments = 16;
+var cupGeometry = new THREE.CylinderGeometry( cupRadius, cupRadius, cupHeight, cupRadialSegments)
+
+var indexOfVertexAtBottom = cupGeometry.vertices.length-1; //2?
+for(var i = 0; i < cupGeometry.faces.length; i++)
+{
+	for(var j = 0; j < 3; j++)
+	{
+		if( cupGeometry.faces[i].getCorner(j) === indexOfVertexAtBottom )
+		{
+			cupGeometry.faces[i].set(indexOfVertexAtBottom,indexOfVertexAtBottom,indexOfVertexAtBottom)
+			break;
+		}
+	}
+}
+cupGeometry.merge( new THREE.CylinderGeometry( cupInnerRadius, cupInnerRadius, cupHeight, cupRadialSegments,1,true) )
+cupGeometry.merge( new THREE.RingGeometry( cupInnerRadius, cupRadius, cupRadialSegments).applyMatrix(new THREE.Matrix4().makeRotationX(TAU/4).setPosition(new THREE.Vector3(0,-cupHeight/2,0))) )
+var cupMaterial = new THREE.MeshLambertMaterial({color:0xC0C0FF, side:THREE.DoubleSide})
+
+var handleThickness = cupRadius / 6
+var handleGeometry = new THREE.TorusGeometry(cupRadius/1.5,handleThickness,16,16,TAU/2)
+handleGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-TAU/4))
+handleGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(cupRadius-handleThickness,0,0))
+cupGeometry.merge(handleGeometry)

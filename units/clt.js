@@ -24,7 +24,7 @@ function initClt()
 		leftArrow.scale.x *= -1
 		rightArrow.position.x = 1
 		leftArrow.position.x = -1
-		scene.add(rightArrow,leftArrow)
+		scene.add(rightArrow)
 
 		function changeChapter(chapterAddition)
 		{
@@ -43,52 +43,101 @@ function initClt()
 		{
 			changeChapter(1)
 		}
-		clickables.push(leftArrow)
-		leftArrow.onClick = function()
-		{
-			changeChapter(-1)
-		}
+
+		// clickables.push(leftArrow)
+		// leftArrow.onClick = function()
+		// {
+		// 	changeChapter(-1)
+		// }
 	}
 
 	initClickableDistributions()
 
-	// Chapter()
+	Chapter()
 
 	// initFinger()
 
-	var cupChapter = Chapter()
-	var coloredBalls = Array(2)
-	for(var i = 0; i < coloredBalls.length; i++)
+	// {
+	// 	var numColoredBalls = 2;
+	// 	var numSwaps = 2;
+		
+	// 	var ballAndCupResetButton = makeTextSign("Reset")
+	// 	ballAndCupResetButton.position.x = 0.8
+	// 	ballAndCupResetButton.position.y = -0.4
+	// 	function reset()
+	// 	{
+	// 		var newChapterPosition = chapters.indexOf(chapter) + 1
+	// 		if( numColoredBalls === 2 || (numColoredBalls<4 && numSwaps>6))
+	// 			numColoredBalls++
+	// 		else
+	// 			numSwaps += 2
+	// 		var newChapter = makeBallAndCupChapter( newChapterPosition )
+	// 		changeChapter(1)
+	// 	}
+	// 	ballAndCupResetButton.onClick = reset
+
+	// 	function makeBallAndCupChapter(newChapterPosition)
+	// 	{
+	// 		var cupChapter = Chapter( newChapterPosition )
+
+	// 		cupChapter.addSceneElement(ballAndCupResetButton)
+	// 		cupChapter.addClickable(ballAndCupResetButton)
+
+	// 		var coloredBalls = Array(numColoredBalls)
+	// 		for(var i = 0; i < coloredBalls.length; i++)
+	// 		{
+	// 			coloredBalls[i] = ColoredBall()
+	// 			coloredBalls[i].position.y = i/(coloredBalls.length-1) * 0.8 - 0.4
+	// 			cupChapter.addSceneElement(coloredBalls[i])
+	// 		}
+	// 		makeCupGame(coloredBalls, numSwaps, cupChapter)
+	// 		return cupChapter
+	// 	}
+	// 	var firstBallAndCupChapter = makeBallAndCupChapter()
+	// }
+
+	// var singleCdChapter = Chapter()
+	// var singularDist = HumpedClickableDistribution([1,1,1,2,3,1,3,2],false,singleCdChapter)
+	// singularDist.position.y -= 0.24
+
 	{
-		coloredBalls[i] = ColoredBall()
-		coloredBalls[i].position.y = i/(coloredBalls.length-1) * 0.8 - 0.4
-		cupChapter.addSceneElement(coloredBalls[i])
-	}
-	makeCupGame(coloredBalls, 1,cupChapter)
-
-	var singleCdChapter = Chapter()
-	var singularDist = HumpedClickableDistribution([1,4,1,1],false,singleCdChapter)
-	singularDist.position.y -= 0.24
-
-	{
-		var clickableDistributionsCupChapter = Chapter()
-
-		var oneHumpedDistribution = HumpedClickableDistribution([1,1,1,1,4.5,1],false,clickableDistributionsCupChapter)
-		var twoHumpedDistribution = HumpedClickableDistribution([1,2.75,1,1,4.5,1],false,clickableDistributionsCupChapter)
-		var threeHumpedDistribution = HumpedClickableDistribution([4,1,4,1,1,4],false,clickableDistributionsCupChapter)
-		oneHumpedDistribution.scale.multiplyScalar(0.2)
-		twoHumpedDistribution.scale.multiplyScalar(0.2)
-		threeHumpedDistribution.scale.multiplyScalar(0.2)
-
-		var clickableDistributions = [oneHumpedDistribution,twoHumpedDistribution,threeHumpedDistribution]
-
-		for(var i = 0; i < clickableDistributions.length; i++)
+		var cdAndCupResetButton = makeTextSign("Reset")
+		cdAndCupResetButton.position.x = 0.8
+		cdAndCupResetButton.position.y = -0.4
+		function cdAndCupReset()
 		{
-			clickableDistributions[i].position.y = 0.3 * (i-(clickableDistributions.length-1)/2)
+			var newChapterPosition = chapters.indexOf(chapter) + 1
+			var newChapter = makeCdAndCupChapter( newChapterPosition )
+			changeChapter(1)
 		}
-	}
+		cdAndCupResetButton.onClick = cdAndCupReset
 
-	makeCupGame(clickableDistributions, 1, clickableDistributionsCupChapter)
+		function makeCdAndCupChapter(newChapterPosition)
+		{
+			var cdAndCupChapter = Chapter( newChapterPosition )
+
+			cdAndCupChapter.addSceneElement(cdAndCupResetButton)
+			cdAndCupChapter.addClickable(cdAndCupResetButton)
+
+			var oneHumpedDistribution = HumpedClickableDistribution([1,1,1,1,4.5,1],false,cdAndCupChapter)
+			var twoHumpedDistribution = HumpedClickableDistribution([1,2.75,1,1,4.5,1],false,cdAndCupChapter)
+			var threeHumpedDistribution = HumpedClickableDistribution([4,1,4,1,1,4],false,cdAndCupChapter)
+			oneHumpedDistribution.scale.multiplyScalar(0.2)
+			twoHumpedDistribution.scale.multiplyScalar(0.2)
+			threeHumpedDistribution.scale.multiplyScalar(0.2)
+
+			var clickableDistributions = [oneHumpedDistribution,twoHumpedDistribution,threeHumpedDistribution]
+
+			for(var i = 0; i < clickableDistributions.length; i++)
+			{
+				clickableDistributions[i].position.y = 0.3 * (i-(clickableDistributions.length-1)/2)
+			}
+			
+			makeCupGame(clickableDistributions, 3, cdAndCupChapter)
+			return cdAndCupChapter
+		}
+		var firstCdCupChapter = makeCdAndCupChapter()
+	}
 
 	Chapter()
 
@@ -105,7 +154,8 @@ function initClt()
 	Ball thing where it gets faster and faster
 	Graph where you're learning how it works
 	Graph thing where you try to guess
-	
+	And change the positions of those blasted things
+
 	Graph thing where you try to get out early using normal dist
 	Final slide: values in front of mug are your "sample"	
 	
