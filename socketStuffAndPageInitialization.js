@@ -20,7 +20,6 @@
 // 	socket.on("chapter update",updateChapter)
 // })();
 
-bestowTeacherControls()
 init()
 
 function bestowTeacherControls()

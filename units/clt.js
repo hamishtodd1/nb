@@ -14,54 +14,85 @@ function initClt()
 	// 		this.updateText("Score: " + numRightSoFar.toString())
 	// 	}
 	// }
-	
 
-	// var fingerGame = initFinger()
+	{
+		var chapters = []
+		
+		var rightArrow = new THREE.Mesh(new THREE.Geometry(), new THREE.MeshBasicMaterial({side:THREE.DoubleSide, color:0xFF0000}))
+		rightArrow.geometry.vertices.push(new THREE.Vector3(0,0,0),new THREE.Vector3(-1,1,0),new THREE.Vector3(-1,-1,0))
+		rightArrow.geometry.faces.push(new THREE.Face3(0,1,2))
+		rightArrow.scale.multiplyScalar(0.07)
+		var leftArrow = rightArrow.clone()
+		leftArrow.scale.x *= -1
+		rightArrow.position.x = 1
+		leftArrow.position.x = -1
+		scene.add(rightArrow,leftArrow)
+
+		function changeChapter(chapterAddition)
+		{
+			chapter.setDown()
+
+			var newChapterIndex = chapters.indexOf(chapter)
+			newChapterIndex += chapterAddition
+			newChapterIndex = clamp(newChapterIndex,0,chapters.length-1)
+			chapter = chapters[newChapterIndex]
+
+			chapter.setUp()
+		}
+
+		clickables.push(rightArrow)
+		rightArrow.onClick = function()
+		{
+			console.log("yo")
+			changeChapter(1)
+		}
+		clickables.push(leftArrow)
+		leftArrow.onClick = function()
+		{
+			changeChapter(-1)
+		}
+	}
+
+	var coloredBalls = Array(3)
+	for(var i = 0; i < coloredBalls.length; i++)
+	{
+		coloredBalls[i] = ColoredBall()
+		coloredBalls[i].position.y = i/(coloredBalls.length-1) * 0.8 - 0.4
+	}
+	var cupChapter = CupGame(coloredBalls, 11)	
+	chapters.push( cupChapter )
+
+	var moreColoredBalls = Array(2)
+	for(var i = 0; i < moreColoredBalls.length; i++)
+	{
+		moreColoredBalls[i] = ColoredBall()
+		moreColoredBalls[i].position.y = i/(moreColoredBalls.length-1) * 0.8 - 0.4
+	}
+	var otherCupChapter = CupGame(moreColoredBalls, 2)	
+	chapters.push( otherCupChapter )
+
+	var fingerGame = initFinger()
+	chapters.push( fingerGame )
 	
-	var clickableDistributions = initClickableDistributions(false,3)
-	makeCupGame(clickableDistributions, 1)
-	
-	// var coloredBalls = initColoredBalls(3)
-	// makeCupGame(coloredBalls, 11) //11
+	// var clickableDistributions = initClickableDistributions(false,3)
+	// var clickableDistributionCupChapter = CupGame(clickableDistributions, 1)
+	// chapters.push( clickableDistributionCupChapter )
+
+	chapters.push({setUp:function(){},setDown:function(){}})
+
+	var chapter = chapters[0]
+	changeChapter(0)
 }
 
 /*
-	Show the numbers to say that this is what “data” is
+	TODO
+	Finger thing (graph next to them) - should be on its side
 
-	
-	Slides
-	Finger thing (just a graph next to them)
+	Show slides
 	Ball thing where it gets faster and faster
 	Graph thing where you try to guess
 	Graph thing where you try to get out early using normal dist
-	Final slide: values in front of mug are your "sample"
-	
-	Schedule
-	Control distribution and population
-	Wobble goes up and down distribution; new ones pop in and out
-	There will be a discrete step by which you can adjust them
-	Animation
-	sort by height (can mark median)
-	Group by height
-	
-	Increase the number of samples hugely while keeping the distribution the same
-	Clicking a distribution gets one sample from it
-	
-	Introduce folks to the cup interface
-	Red ball, blue ball, green ball
-	Do some where you CAN keep track of the mugs. Increase scramblecount by 1 when they get it right. And ball number?
-	Click a cup loads and try to figure out which shape is being built up
-	Then we add in the average
-	It's another, differently colored, ball inamongst the balls they're building up
-	Useful because it's important to see that it hones in on something = "regression to the mean"
-	
-	// Central limit theorem
-	// 	One of the distributions is one that they all got
-	// 	Their averages are plotted on teacher screen
-	// 		You can hover on teacher screen and you'll see on your own screen that teacher is hovering on yours
-	// 	Bulk it up with a few more?
-	// 	Woo it's a normal distribution
-	// 	Give loads more examples, using every distribution they faced 
+	Final slide: values in front of mug are your "sample"	
 	
 	Back to puzzles
 	Now you can click and hold and you'll get them
@@ -82,6 +113,14 @@ function initClt()
 	Should be able to see that approximately 200 * p of them give false positives
 	Then?
 	You can control the n - but it means you do more/less experiments
+
+	// Central limit theorem
+	// 	One of the distributions is one that they all got
+	// 	Their averages are plotted on teacher screen
+	// 		You can hover on teacher screen and you'll see on your own screen that teacher is hovering on yours
+	// 	Bulk it up with a few more?
+	// 	Woo it's a normal distribution
+	// 	Give loads more examples, using every distribution they faced 
 	*/
 
 	function initFinger()
@@ -123,7 +162,7 @@ function initClt()
 		if(mouse.clicking && mouse.lastClickedObject === this)
 		{
 			var newClickedPoint = mouse.rayIntersectionWithZPlane(0)
-			this.scale.multiplyScalar( newClickedPoint.length() / this.clickedPoint.length() )
+			this.scale.multiplyScalar( newClickedPoint.distanceTo(this.position) / this.clickedPoint.distanceTo(this.position) )
 			this.clickedPoint = newClickedPoint
 		}
 
@@ -138,81 +177,133 @@ function initClt()
 		this.clickedPoint = mouse.rayIntersectionWithZPlane(0)
 	}
 
-	var fingerGame = {
-		isSetUp: false,
-		setUp: function()
+	// var fingerGame = {
+	// 	setUp: function()
+	// 	{
+	// 		clickables.push(fingerRuler)
+	// 		objectsToBeUpdated.push(fingerRuler)
+
+	// 		scene.add( fingerRuler )
+	// 		scene.add( lengthMarker )
+
+	// 		for( var i = 0; i < cmMarkers.length; i++ )
+	// 		{
+	// 			scene.add( cmMarkers[i] )
+	// 		}
+	// 	},
+	// 	setDown: function()
+	// 	{
+	// 		clickables.splice(clickables.indexOf(fingerRuler),1)
+	// 		objectsToBeUpdated.splice(objectsToBeUpdated.indexOf(fingerRuler),1)
+
+	// 		scene.remove( fingerRuler )
+	// 		scene.remove( lengthMarker )
+
+	// 		for( var i = 0; i < cmMarkers.length; i++ )
+	// 		{
+	// 			scene.remove( cmMarkers[i] )
+	// 		}
+	// 	}
+	// }
+
+	var fingerChapter = Chapter()
+	fingerChapter.addSceneElement(fingerRuler)
+	fingerChapter.addSceneElement(lengthMarker)
+	fingerChapter.addClickable(fingerRuler)
+	fingerChapter.addUpdatingObject(fingerRuler)
+	for( var i = 0; i < cmMarkers.length; i++ )
+	{
+		fingerChapter.addSceneElement(cmMarkers[i])
+	}
+
+	return fingerChapter
+}
+
+function Chapter()
+{
+	var chapter = {
+		sceneElementsToAdd:[],
+		sceneElementsToRemove:[],
+		updatingObjectsToAdd:[],
+		updatingObjectsToRemove:[],
+		clickablesToAdd:[],
+		clickablesToRemove:[],
+		functionsToCallOnSetUp:[],
+		functionsToCallOnSetDown:[]
+	}
+	chapter.addSceneElement = function(object3D)
+	{
+		this.sceneElementsToAdd.push(object3D)
+		this.sceneElementsToRemove.push(object3D)
+	}
+	chapter.addUpdatingObject = function(object)
+	{
+		this.updatingObjectsToAdd.push(object)
+		this.updatingObjectsToRemove.push(object)
+	}
+	chapter.addClickable = function(object)
+	{
+		this.clickablesToAdd.push(object)
+		this.clickablesToRemove.push(object)
+	}
+
+	chapter.setUp = function()
+	{
+		for(var i = 0; i < this.sceneElementsToAdd.length; i++)
 		{
-			clickables.push(fingerRuler)
-			objectsToBeUpdated.push(fingerRuler)
+			scene.add(this.sceneElementsToAdd[i])
+		}
 
-			scene.add( fingerRuler )
-			scene.add( lengthMarker )
-
-			for( var i = 0; i < cmMarkers.length; i++ )
-			{
-				scene.add( cmMarkers[i] )
-			}
-
-			this.isSetUp = true;
-		},
-		setDown: function()
+		for(var i = 0; i < this.updatingObjectsToAdd.length; i++)
 		{
-			clickables.splice(fingerRuler,1)
-			objectsToBeUpdated.splice(fingerRuler,1)
+			objectsToBeUpdated.push(this.updatingObjectsToAdd[i])
+		}
 
-			scene.remove( fingerRuler )
-			scene.remove( lengthMarker )
-			scene.remove(yourFingerIsBeingShownSign)
+		for(var i = 0; i < this.clickablesToAdd.length; i++)
+		{
+			clickables.push(this.clickablesToAdd[i])
+		}
 
-			for( var i = 0; i < cmMarkers.length; i++ )
+		for(var i = 0; i < this.functionsToCallOnSetUp.length; i++)
+		{
+			this.functionsToCallOnSetUp[i]()
+		}
+
+		correctSign.material.opacity = 0.0001
+		incorrectSign.material.opacity = 0.0001
+	}
+	chapter.setDown = function()
+	{
+		for(var i = 0; i < this.sceneElementsToRemove.length; i++)
+		{
+			scene.remove(this.sceneElementsToRemove[i])
+		}
+
+		for(var i = 0; i < this.updatingObjectsToRemove.length; i++)
+		{
+			var index = objectsToBeUpdated.indexOf(this.updatingObjectsToRemove[i])
+			if(index !== -1)
 			{
-				scene.remove( cmMarkers[i] )
+				objectsToBeUpdated.splice(index,1)
 			}
+		}
 
-			this.isSetUp = false;
+		for(var i = 0; i < this.clickablesToRemove.length; i++)
+		{
+			var index = clickables.indexOf(this.clickablesToRemove[i])
+			if(index !== -1)
+			{
+				clickables.splice(index,1)
+			}
+		}
+
+		for(var i = 0; i < this.functionsToCallOnSetDown.length; i++)
+		{
+			this.functionsToCallOnSetDown[i]()
 		}
 	}
 
-	fingerGame.setUp()
-
-	return fingerGame
-}
-
-function initColoredBalls(numColoredBalls)
-{
-	var glowingObjects = [];
-	glowingObjects.glowing = true
-	objectsToBeUpdated.push(glowingObjects)
-	glowingObjects.update = function()
-	{
-		// var glowColor = 0.3 * (Math.sin(frameCount * 0.1)+1)/2
-		// if(!glowingObjects.glowing)
-		// {
-		// 	glowColor = 0;
-		// }
-		// for(var i = 0; i < glowingObjects.length; i++)
-		// {
-		// 	if( glowingObjects.glowing )
-		// 	{
-		// 		glowingObjects[i].material.emissive.setRGB(glowColor,glowColor,glowColor)
-		// 	}
-		// }
-	}
-
-	var coloredBalls = Array(numColoredBalls)
-	for(var i = 0; i < coloredBalls.length; i++)
-	{
-		coloredBalls[i] = new THREE.Mesh(new THREE.SphereGeometry(0.1),new THREE.MeshPhongMaterial())
-		coloredBalls[i].castShadow = true;
-		glowingObjects.push(coloredBalls[i])
-		clickables.push(coloredBalls[i])
-		scene.add(coloredBalls[i])
-		coloredBalls[i].material.color.setRGB(Math.random(),Math.random(),Math.random())
-
-		coloredBalls[i].position.y = i/(coloredBalls.length-1) * 0.8 - 0.4
-	}
-
-	return coloredBalls
+	return chapter;
 }
 
 function initClickableDistributions(normalDistributionsPresent, numWeWant)
@@ -890,4 +981,5 @@ function gamma(z)
 			Take their manhattan distance
 			i.e. take the lines connecting them to the origin paralell to the axes then straighten them
 			Might work better/well with more than three axes!
+		Numbers next to the lines, probably
 */
